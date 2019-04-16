@@ -8,6 +8,13 @@ A (hopefully) better game controller library for current-gen game consoles.
 
 This project is for research purposes only and does not come with any warranty. Use it at your own risk.
 
+## Use cases
+
+- Fightsticks
+- Rhythm game controllers
+- Accessible controllers
+- Creative projects (e.g. beat BloodBorne with bananas, etc.)
+
 ## Current status
 
 ### Works
@@ -17,13 +24,13 @@ This project is for research purposes only and does not come with any warranty. 
   - Official controller
   - Hori Mini
 - Authentication over USB Host Shield authenticator and Teensy USB transport
-- Report sending/receiving over Teensy USB transport
+- Interrupt IN/OUT reports over Teensy USB transport
 
 ### Not (throughly) tested
 
 - Example sketch(es)
 - Feedback report handling
-- Input sending
+- Input report manipulation
 - Teensy transport (needs more testing)
 
 ### Does not work/WIP
@@ -32,6 +39,7 @@ This project is for research purposes only and does not come with any warranty. 
 - UnoJoy compatibility layer
 - Authentication using Guitar Hero Dongle (needs hack)
 - Per-project library configuration
+- More example sketches
 
 ### Planned
 

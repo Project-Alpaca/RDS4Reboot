@@ -134,10 +134,15 @@ public:
     bool setKey(uint8_t code, bool action) override;
     bool setAxis(uint8_t code, uint8_t value) override;
     bool setAxis16(uint8_t code, uint16_t value) override;
+
     bool setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y);
+    bool setTouchEvent(uint8_t pos, bool pressed, uint16_t x=0, uint16_t y=0);
+    bool finalizeTouchEvent();
+    void clearTouchEvents();
+
     bool hasValidFeedback();
-    uint8_t getRumbleStrengthRight();
-    uint8_t getRumbleStrengthLeft();
+    uint8_t getRumbleIntensityRight();
+    uint8_t getRumbleIntensityLeft();
     uint32_t getLEDRGB();
     uint8_t getLEDDelayOn();
     uint8_t getLEDDelayOff();
@@ -145,6 +150,8 @@ public:
 private:
     ds4_report_t report;
     ds4_feedback_t feedback;
+    uint8_t currentTouchSeq;
+    void incReportCtr();
 };
 
 } // namespace rds4
