@@ -272,7 +272,8 @@ enum class Rotary8Pos : uint8_t {
     SW,
     W,
     NW,
-    C,
+    C = 8,
+    NUL = 8,
 };
 
 using Dpad8Pos = Rotary8Pos;
@@ -282,21 +283,70 @@ public:
     ControllerBase(TransportBase *backend) {
         this->backend = backend;
     }
+    /** Initialize the report buffer and transport back-end. */
     virtual void begin() = 0;
+    /** Send the current report (non-blocking).
+     *  @return `true` if successful.
+     */
     virtual bool sendReport() = 0;
+    /** Send the current report (blocking).
+     *  @return `true` if successful.
+     */
     virtual bool sendReportBlocking() = 0;
+    /** Set state for a rotary encoder (8 positions with null state).
+     *  @param index of the encoder. This is implementation-specific.
+     *  @param value of the encoder.
+     *  @return `true` if successful.
+     *  @see Rotary8Pos
+     */
     virtual bool setRotary8Pos(uint8_t code, Rotary8Pos value) = 0;
+    /** Set state for a push button/key.
+     *  @param the key code. This is implementation-specific.
+     *  @param `true` if the key is pressed.
+     *  @return `true` if successful.
+     */
     virtual bool setKey(uint8_t code, bool action) = 0;
+    /** Set state for an analog axis (8-bit).
+     *  @param the index of axis. This is implementation-specific.
+     *  @param the value of the axis.
+     *  @return `true` if successful.
+     *  @see setAxis16()
+     */
     virtual bool setAxis(uint8_t code, uint8_t value) = 0;
+    /** Set state for an analog axis (16-bit).
+     *  @param the index of axis. This is implementation-specific.
+     *  @param the value of the axis.
+     *  @return `true` if successful.
+     *  @see setAxis()
+     */
     virtual bool setAxis16(uint8_t code, uint16_t value) = 0;
 
     // Helpers
+    /** Set state for a D-pad. Equivalent to setRotary8Pos().
+     *  @param index of the encoder. This is implementation-specific.
+     *  @param value of the encoder.
+     *  @return `true` if successful.
+     *  @see Dpad8Pos
+     *  @see setRotary8Pos()
+     */
     inline bool setDpad(uint8_t code, Dpad8Pos value) {
         return this->setRotary8Pos(code, value);
     }
+    /** Set a key/push button to pressed state.
+     *  @param the key code.
+     *  @return `true` if successful.
+     *  @see releaseKey()
+     *  @see setKey()
+     */
     inline bool pressKey(uint8_t code) {
         return this->setKey(code, true);
     }
+    /** Set a key/push button to released state.
+     *  @param the key code.
+     *  @return `true` if successful.
+     *  @see pressKey()
+     *  @see setKey()
+     */
     inline bool releaseKey(uint8_t code) {
         return this->setKey(code, false);
     }
