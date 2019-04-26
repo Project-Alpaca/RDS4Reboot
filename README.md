@@ -8,6 +8,10 @@ A (hopefully) better game controller library for current-gen game consoles.
 
 This project is for research purposes only and does not come with any warranty. Use it at your own risk.
 
+## Why not b***k?
+
+Simply put, existing software/boards like B\*\*\*k, C\*\*\*\*\*u, P\*\*\*0, etc. are either not flexible enough for my needs (I want full control over what the controller sends and receives, not just buttons and sticks), proprietary as f\*\*\*, does not support current-gen consoles because they have "impossible to crack security measures", too expensive, or all of the above. Besides that, I am not hardcore enough to think that scrapping a $60 controller and figuring out how to padhack the touchpad, gyroscope, accelerometer, rumble motor, etc. without running into random obstacles such as frying the motherboard would be a good idea. So here we are.
+
 ## Use cases
 
 - Fightsticks
