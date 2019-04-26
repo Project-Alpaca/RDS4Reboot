@@ -130,6 +130,7 @@ public:
     void begin() override;
     void update();
     bool sendReport() override;
+    bool sendReportBlocking() override;
     bool setRotary8Pos(uint8_t code, Rotary8Pos value) override;
     bool setKey(uint8_t code, bool action) override;
     bool setAxis(uint8_t code, uint8_t value) override;
@@ -152,6 +153,7 @@ private:
     ds4_feedback_t feedback;
     uint8_t currentTouchSeq;
     void incReportCtr();
+    bool sendReport_(bool blocking);
 };
 
 } // namespace rds4

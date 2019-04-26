@@ -43,10 +43,15 @@ bool ControllerDS4::hasValidFeedback() {
     return this->feedback.type == 0x05;
 }
 
-bool ControllerDS4::sendReport() {
+inline bool ControllerDS4::sendReport_(bool blocking) {
     // https://www.psdevwiki.com/ps4/DS4-BT#0x11
     this->report.sensor_timestamp = ((millis() * 150) & 0xffff);
-    auto actual = this->backend->send(&(this->report), sizeof(this->report));
+    uint8_t actual;
+    if (blocking) {
+        actual = this->backend->sendBlocking(&(this->report), sizeof(this->report));
+    } else {
+        actual = this->backend->send(&(this->report), sizeof(this->report));
+    }
     if (actual != sizeof(this->report)) {
         return false;
     } else {
@@ -56,6 +61,14 @@ bool ControllerDS4::sendReport() {
         return true;
     }
     return false;
+}
+
+bool ControllerDS4::sendReport() {
+    return this->sendReport_(false);
+}
+
+bool ControllerDS4::sendReportBlocking() {
+    return this->sendReport_(true);
 }
 
 inline void ControllerDS4::incReportCtr() {

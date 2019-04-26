@@ -268,7 +268,7 @@ protected:
 };
 
 template <class TR>
-const uint8_t FeatureConfigurator<TR>::RESPONSE[] = {
+const uint8_t FeatureConfigurator<TR>::RESPONSE[] PROGMEM = {
     0x03, 0x21, 0x27, 0x04, 0x4d, 0x00, 0x2c, 0x56,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x0d, 0x0d, 0x00, 0x00, 0x00, 0x00,
@@ -316,6 +316,7 @@ public:
     }
     bool available() override;
     uint8_t send(const void *buf, uint8_t len) override;
+    uint8_t sendBlocking(const void *buf, uint8_t len) override;
     uint8_t recv(void *buf, uint8_t len) override;
 
 protected:
@@ -352,18 +353,27 @@ typedef struct {
     EndpointDescriptor out;
 } DS4HIDDescriptor;
 
+#if defined(ARDUINO_ARCH_AVR)
+typedef uint8_t usb_eptype_t;
+#elif defined(ARDUINO_ARCH_SAMD)
+typedef uint32_t usb_eptype_t;
+const usb_eptype_t EP_TYPE_INTERRUPT_IN = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_IN(0);
+const usb_eptype_t EP_TYPE_INTERRUPT_OUT = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_OUT(0);
+#endif
+
 /** Tansport backend for Arduino PluggableUSB-compatible boards. */
 class TransportDS4PUSB : public PluggableUSBModule, public TransportBase, public AuthenticationHandlerDS4<TransportDS4PUSB> {
 public:
-    TransportDS4PUSB(void);
-    int begin(void) override;
+    TransportDS4PUSB(AuthenticatorBase *auth) : AuthenticationHandlerDS4(auth),
+                                                PluggableUSBModule(2, 1, epType) {
+        this->epType = {EP_TYPE_INTERRUPT_IN, EP_TYPE_INTERRUPT_OUT};
+        PluggableUSB().plug(this);
+        
+    }
+    int begin(void) override { return; }
     uint8_t send(const void *buf, uint8_t len) override;
     uint8_t recv(void *buf, uint8_t len) override;
-    bool sendAvailable() override;
-    bool recvAvailable() override;
-    
-    uint16_t ep;
-    uint16_t iface;
+    bool available() override;
 
 protected:
     // PluggableUSB API
@@ -374,7 +384,10 @@ protected:
     uint8_t check(void *buf, uint8_t len) override;
 
 private:
-    uint8_t epType[2];
+    inline uint8_t getOutEP() { return this->pluggedEndpoint; }
+    inline uint8_t getInEP() { return this->pluggedEndpoint - 1; }
+    usb_eptype_t epType[2];
+    // TODO do we need these?
     uint8_t protocol;
     uint8_t idle;
 };

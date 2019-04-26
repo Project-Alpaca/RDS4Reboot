@@ -83,7 +83,7 @@ uint8_t TransportDS4Teensy::send(const void *buf, uint8_t len) {
     usb_packet_t *pkt = NULL;
 
     // make sure the USB is initialized
-    if (!usb_configuration) return false;
+    if (!usb_configuration) return 0;
     // check for queued packets
     if (usb_tx_packet_count(DS4_TX_ENDPOINT) < MAX_PACKETS) {
         pkt = usb_malloc();
@@ -93,11 +93,37 @@ uint8_t TransportDS4Teensy::send(const void *buf, uint8_t len) {
             usb_tx(DS4_TX_ENDPOINT, pkt);
             return len;
         } else {
-            RDS4_DBG_PRINTLN("malloc() failed");
             return 0;
         }
     }
     return 0;
+}
+
+uint8_t TransportDS4Teensy::sendBlocking(const void *buf, uint8_t len) {
+    usb_packet_t *pkt = NULL;
+    uint32_t begin = millis();
+
+    // Blocking send
+    while (1) {
+        // make sure the USB is initialized
+        if (!usb_configuration) return 0;
+        // check for queued packets
+        if (usb_tx_packet_count(DS4_TX_ENDPOINT) < MAX_PACKETS) {
+            if ((pkt = usb_malloc())) {
+                break;
+            }
+        }
+        if (millis() - begin > 70) {
+            RDS4_DBG_PRINTLN("send timeout");
+            return 0;
+        }
+        // Make sure any on-yield tasks got executed during waiting
+        yield();
+    }
+    memcpy(pkt->buf, buf, len);
+    pkt->len = len;
+    usb_tx(DS4_TX_ENDPOINT, pkt);
+    return len;
 }
 
 uint8_t TransportDS4Teensy::recv(void *buf, uint8_t len) {

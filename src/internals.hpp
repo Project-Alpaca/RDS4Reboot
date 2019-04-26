@@ -82,7 +82,14 @@ public:
      *  @return The number of actual bytes received.
      */
     virtual uint8_t recv(void *buf, uint8_t len) = 0;
-    // TODO blocking API for (RT)OSes
+    /** Send data through the link (blocking). The blocking timeout is
+     *  implementation-specific
+     *
+     *  @param The buffer that contains data to send.
+     *  @param The length of the supplied buffer.
+     *  @return The number of actual bytes sent.
+     */
+    virtual uint8_t sendBlocking(const void *buf, uint8_t len) = 0;
 protected:
     // Feature request API. Intended for internal use. If developing CRTPs
     // (for auth, etc.) one must set the CRTP class as friend in order to
@@ -277,6 +284,7 @@ public:
     }
     virtual void begin() = 0;
     virtual bool sendReport() = 0;
+    virtual bool sendReportBlocking() = 0;
     virtual bool setRotary8Pos(uint8_t code, Rotary8Pos value) = 0;
     virtual bool setKey(uint8_t code, bool action) = 0;
     virtual bool setAxis(uint8_t code, uint8_t value) = 0;
