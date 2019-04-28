@@ -276,6 +276,15 @@ enum class Rotary8Pos : uint8_t {
     NUL = 8,
 };
 
+enum class Key : uint8_t {
+    A, B, X, Y, LButton, RButton, LTrigger, RTrigger, LStick, RStick,
+    Home, Select, Start,
+};
+
+enum class Stick : uint8_t {
+    L, R,
+};
+
 using Dpad8Pos = Rotary8Pos;
 
 class ControllerBase {
@@ -321,6 +330,12 @@ public:
      */
     virtual bool setAxis16(uint8_t code, uint16_t value) = 0;
 
+    // Universal APIs
+    virtual bool setKeyUniversal(Key code, bool action) = 0;
+    virtual bool setDpadUniversal(Dpad8Pos value) = 0;
+    virtual bool setStick(Stick index, uint8_t x, uint8_t y) = 0;
+    virtual bool setTrigger(Key code, uint8_t value) = 0;
+
     // Helpers
     /** Set state for a D-pad. Equivalent to setRotary8Pos().
      *  @param index of the D-pad. This is implementation-specific.
@@ -349,6 +364,14 @@ public:
      */
     inline bool releaseKey(uint8_t code) {
         return this->setKey(code, false);
+    }
+
+    inline bool pressKeyUniversal(Key code) {
+        return this->setKeyUniversal(code, true);
+    }
+
+    inline bool releaseKeyUniversal(Key code) {
+        return this->setKeyUniversal(code, false);
     }
 
 protected:
