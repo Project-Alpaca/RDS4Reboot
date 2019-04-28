@@ -323,8 +323,8 @@ public:
 
     // Helpers
     /** Set state for a D-pad. Equivalent to setRotary8Pos().
-     *  @param index of the encoder. This is implementation-specific.
-     *  @param value of the encoder.
+     *  @param index of the D-pad. This is implementation-specific.
+     *  @param value of the D-pad.
      *  @return `true` if successful.
      *  @see Dpad8Pos
      *  @see setRotary8Pos()
@@ -355,4 +355,97 @@ protected:
     TransportBase *backend;
 }; // ControllerBase
 
+/** A simple SOCD cleaner mixin. Can be attached to a ControllerBase-compatible
+ *  class by creating a new subclass of it as `C` and inheriting
+ *  `SOCDBehavior<C>`.
+ *  The exact behavior of the cleaner is specified via template parameter `NS`
+ *  (both Up (north) and Down (south) are pressed) and `WE` (both Left (west)
+ *  and Right (east) are pressed). When `NS` is set to either `Dpad8Pos::N` or
+ *  `Dpad8Pos::S`, the cleaner only keeps Up or Down press while discards the
+ *  opposite press.
+ *  Similarily, when `WE` is set to either `Dpad8Pos::W` or `Dpad8Pos::E`, only
+ *  Left or Right will be kept. Any other parameters, including `Dpad8Pos::C`
+ *  will be treated as neutral and the cleaner removes presses of both
+ *  directions.
+ */
+template <class C, Dpad8Pos NS, Dpad8Pos WE>
+class SOCDBehavior {
+public:
+    /** Do SOCD cleaning and set state for a D-pad.
+     *  @param index of the D-pad. This is implementation-specific.
+     *  @param True if the Up (North) button is pressed.
+     *  @param True if the Right (East) button is pressed.
+     *  @param True if the Down (South) button is pressed.
+     *  @param True if the Left (West) button is pressed.
+     *  @return `true` if successful.
+     *  @see Dpad8Pos
+     */
+    bool setDpadSOCD(uint8_t code, bool n, bool e, bool s, bool w) {
+        auto pos = Dpad8Pos::C;
+        auto *cobj = static_cast<C *>(this);
+        // Clean the input
+        if (n and s) {
+            switch (NS) {
+                case Dpad8Pos::N:
+                    s = false;
+                    break;
+                case Dpad8Pos::S:
+                    n = false;
+                    break;
+                case Dpad8Pos::C:
+                default:
+                    s = false;
+                    n = false;
+            }
+        }
+        if (w and e) {
+            switch (WE) {
+                case Dpad8Pos::W:
+                    e = false;
+                    break;
+                case Dpad8Pos::E:
+                    w = false;
+                    break;
+                case Dpad8Pos::C:
+                default:
+                    e = false;
+                    w = false;
+            }
+        }
+        // Map cleaned input to D-Pad positions
+        if (n) {
+            // NE
+            if (e) {
+                pos = Dpad8Pos::NE;
+            // NW
+            } else if (w) {
+                pos = Dpad8Pos::NW;
+            // N only
+            } else {
+                pos = Dpad8Pos::N;
+            }
+        } else if (s) {
+            // SE
+            if (e) {
+                pos = Dpad8Pos::SE;
+            // SW
+            } else if (w) {
+                pos = Dpad8Pos::SW;
+            // S only
+            } else {
+                pos = Dpad8Pos::S;
+            }
+        // W only
+        } else if (w) {
+            pos = Dpad8Pos::W;
+        // E only
+        } else if (e) {
+            pos = Dpad8Pos::E;
+        // Centered/neutral
+        } else {
+            pos = Dpad8Pos::C;
+        }
+        return cobj->setDpad(code, pos);
+    }
+}; // SOCDBehavior
 } // namespace rds4

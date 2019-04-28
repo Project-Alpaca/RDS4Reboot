@@ -156,4 +156,10 @@ private:
     bool sendReport_(bool blocking);
 };
 
+template <Dpad8Pos NS=Dpad8Pos::C, Dpad8Pos WE=Dpad8Pos::C>
+class ControllerDS4SOCD : public ControllerDS4, public SOCDBehavior<ControllerDS4, NS, WE> {
+public:
+    ControllerDS4SOCD(TransportBase *backend) : ControllerDS4(backend) {};
+};
+
 } // namespace rds4

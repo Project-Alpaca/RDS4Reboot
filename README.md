@@ -17,7 +17,7 @@ Simply put, existing software/boards like B\*\*\*k, C\*\*\*\*\*u, P\*\*\*0, etc.
 - Fightsticks
 - Rhythm game controllers
 - Accessible controllers
-- Creative projects (e.g. beat BloodBorne with bananas, etc.)
+- Creative projects (e.g. beat <strike>Dark Souls</strike> <strike>BloodBorne</strike> Sekiro with bananas, etc.)
 
 ## Current status
 
