@@ -57,8 +57,8 @@ namespace rds4 {
  */
 class TransportBase {
 public:
-    /** Start transport backend */
-    virtual void begin() = 0;
+    /** Start transport backend. Does nothing by default. */
+    virtual void begin() { };
     /** Check if there are packets that are available for receiving.
      *
      *  @return `true` if available, `false` if no packet is available.
@@ -125,7 +125,8 @@ enum class AuthStatus : uint8_t {
 
 class AuthenticatorBase {
 public:
-    virtual void begin() = 0;
+    /** Start authenticator. Does nothing by default. */
+    virtual void begin() { };
     /** Check if the authenticator is connected and ready.
      *
      *  @return `true` if the authenticator is connected and ready.

@@ -17,6 +17,25 @@
 
 namespace rds4 {
 
+class AuthenticatorDS4Null : public AuthenticatorBase {
+    void begin() { this->fitPageSize(); }
+    bool available() override { return true; }
+    bool canFitPageSize() override { return true; }
+    bool canSetPageSize() override { return true; }
+    bool needsReset() override { return false; }
+    bool fitPageSize() override {
+        this->challengePageSize = 0x38;
+        this->responsePageSize = 0x38;
+        return true;
+    }
+    bool endOfChallenge(uint8_t page) override { return true; }
+    bool endOfResponse(uint8_t page) override { return true; }
+    bool reset() override { return true; }
+    size_t writeChallengePage(uint8_t page, void *buf, size_t len) { return len; }
+    size_t readResponsePage(uint8_t page, void *buf, size_t len) { return 0; }
+    AuthStatus getStatus() override { return AuthStatus::UNKNOWN_ERR; }
+};
+
 #ifdef RDS4_AUTH_USBH
 
 /** Modified PS4USB class that adds basic support for some licensed PS4 controllers. */
@@ -68,8 +87,6 @@ public:
     static const uint16_t CHALLENGE_SIZE = 0x100;
     static const uint16_t RESPONSE_SIZE = 0x410;
     AuthenticatorDS4USBH(PS4USB2 *donor);
-    /** Initialize the authenticator. Should be called after USBH starts. */
-    void begin() override;
     bool available() override;
     bool canFitPageSize() override { return true; }
     bool canSetPageSize() override { return false; }

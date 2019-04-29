@@ -63,9 +63,23 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
             case DS4AuthState::NONCE_RECEIVED:
                 RDS4_DBG_PRINTLN("AuthenticationHandlerDS4: consuming nonce");
                 // If this is the first page and the auth device is resettable, reset it
-                if (this->page == 0 and this->auth->needsReset()) {
-                    RDS4_DBG_PRINTLN("reset");
-                    this->auth->reset();
+                if (this->page == 0) {
+                    // Use auto fit if available, otherwise manually set to maximum size if possible
+                    // TODO verify buffer size 0x38 on A7105
+                    if (this->auth->canSetPageSize() and not this->auth->canFitPageSize()) {
+                        RDS4_DBG_PRINTLN("set pagesize to maximum");
+                        this->auth->setChallengePageSize(sizeof(pkt->data));
+                        this->auth->setResponsePageSize(sizeof(pkt->data));
+                    }
+                    // Reset also fits the buffer size if possible
+                    if (this->auth->needsReset()) {
+                        RDS4_DBG_PRINTLN("reset");
+                        this->auth->reset();
+                    // Otherwise trigger auto fit explicitly
+                    } else if (this->auth->canFitPageSize()) {
+                        RDS4_DBG_PRINTLN("auto fit");
+                        this->auth->fitPageSize();
+                    }
                 }
                 // Submit the page to auth device
                 if (this->auth->writeChallengePage(this->page, &(pkt->data), sizeof(pkt->data))) {

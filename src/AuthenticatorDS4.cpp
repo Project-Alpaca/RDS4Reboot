@@ -16,14 +16,7 @@
 namespace rds4 {
 
 #ifdef RDS4_AUTH_USBH
-AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : wasConnected(false) {
-    this->donor = donor;
-}
-
-
-void AuthenticatorDS4USBH::begin() {
-    //this->fitPageSize();
-}
+AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : wasConnected(false), donor(donor) { }
 
 bool AuthenticatorDS4USBH::available() {
     auto state = this->donor->connected();
