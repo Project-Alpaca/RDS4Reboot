@@ -9,7 +9,9 @@
 
 #include "internals.hpp"
 
-#ifdef RDS4_AUTH_USBH
+// Sigh... https://github.com/arduino/arduino-builder/issues/15#issuecomment-145558252
+#if __has_include(<PS4USB.h>)
+#define RDS4_AUTH_USBH
 #include <PS4USB.h>
 // For auth structs
 #include "ControllerDS4.hpp"
