@@ -278,12 +278,12 @@ enum class Rotary8Pos : uint8_t {
 };
 
 enum class Key : uint8_t {
-    A, B, X, Y, LButton, RButton, LTrigger, RTrigger, LStick, RStick,
-    Home, Select, Start,
+    A = 0, B, X, Y, LButton, RButton, LTrigger, RTrigger, LStick, RStick,
+    Home, Select, Start, _COUNT,
 };
 
 enum class Stick : uint8_t {
-    L, R,
+    L = 0, R,
 };
 
 using Dpad8Pos = Rotary8Pos;

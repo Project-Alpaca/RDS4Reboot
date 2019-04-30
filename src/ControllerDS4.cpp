@@ -15,6 +15,22 @@
 
 namespace rds4 {
 
+const uint8_t ControllerDS4::keyLookup[static_cast<uint8_t>(Key::_COUNT)] = {
+    ControllerDS4::KEY_CIR,
+    ControllerDS4::KEY_XRO,
+    ControllerDS4::KEY_TRI,
+    ControllerDS4::KEY_SQR,
+    ControllerDS4::KEY_L1,
+    ControllerDS4::KEY_R1,
+    ControllerDS4::KEY_L2,
+    ControllerDS4::KEY_R2,
+    ControllerDS4::KEY_L3,
+    ControllerDS4::KEY_R3,
+    ControllerDS4::KEY_PS,
+    ControllerDS4::KEY_SHR,
+    ControllerDS4::KEY_OPT,
+};
+
 ControllerDS4::ControllerDS4(TransportBase *backend) : ControllerBase(backend), currentTouchSeq(0) { /* pass */ };
 
 void ControllerDS4::begin() {
@@ -121,12 +137,65 @@ bool ControllerDS4::setAxis16(uint8_t code, uint16_t value) {
     return false;
 }
 
+bool ControllerDS4::setKeyUniversal(Key code, bool action) {
+    if (code == Key::_COUNT) {
+        return false;
+    }
+    auto ds4Code = this->keyLookup[static_cast<uint8_t>(code)];
+    switch (code) {
+        case Key::LTrigger:
+            this->setAxis(ControllerDS4::AXIS_L2, action ? 0xff : 0x0);
+            break;
+        case Key::RTrigger:
+            this->setAxis(ControllerDS4::AXIS_R2, action ? 0xff : 0x0);
+            break;
+        default:
+            break;
+    }
+    this->setKey(ds4Code, action);
+    return true;
+}
+
+bool ControllerDS4::setDpadUniversal(Dpad8Pos value) {
+    return this->setDpad(0, value);
+}
+
+bool ControllerDS4::setStick(Stick index, uint8_t x, uint8_t y) {
+    switch (index) {
+        case Stick::L:
+            this->setAxis(ControllerDS4::AXIS_LX, x);
+            this->setAxis(ControllerDS4::AXIS_LY, y);
+            break;
+        case Stick::R:
+            this->setAxis(ControllerDS4::AXIS_RX, x);
+            this->setAxis(ControllerDS4::AXIS_RY, y);
+            break;
+    }
+    return true;
+}
+
+bool ControllerDS4::setTrigger(Key code, uint8_t value) {
+    auto ds4Code = this->keyLookup[static_cast<uint8_t>(code)];
+    switch (code) {
+        case Key::LTrigger:
+            this->setAxis(ControllerDS4::AXIS_L2, value);
+            break;
+        case Key::RTrigger:
+            this->setAxis(ControllerDS4::AXIS_R2, value);
+            break;
+        default:
+            break;
+    }
+    this->setKey(ds4Code, value);
+    return true;
+}
+
 static inline bool tpGetState(uint32_t tp) {
-    return (bool) ((~(tp >> 7)) & 1);
+    return ((~(tp >> 7)) & 1);
 }
 
 static inline uint8_t tpGetId(uint32_t tp) {
-    return (uint8_t) (tp & 0x7f);
+    return (tp & 0x7f);
 }
 
 static inline uint16_t tpGetX(uint32_t tp) {

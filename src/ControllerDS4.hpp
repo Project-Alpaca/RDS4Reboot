@@ -91,10 +91,10 @@ typedef struct {
 
 class ControllerDS4 : public ControllerBase {
 public:
-    enum Rotary : uint8_t {
+    enum : uint8_t {
         ROT_MAIN = 0,
     };
-    enum Key : uint8_t {
+    enum : uint8_t {
         KEY_SQR = 0,
         KEY_XRO,
         KEY_CIR,
@@ -110,7 +110,7 @@ public:
         KEY_PS,
         KEY_TP,
     };
-    enum Axis : uint8_t {
+    enum : uint8_t {
         AXIS_LX = 0,
         AXIS_LY,
         AXIS_RX,
@@ -118,7 +118,7 @@ public:
         AXIS_L2,
         AXIS_R2,
     };
-    enum Report : uint8_t {
+    enum : uint8_t {
         IN_REPORT = 0x1,
         OUT_FEEDBACK = 0x5,
         SET_CHALLENGE = 0xf0,
@@ -135,6 +135,11 @@ public:
     bool setKey(uint8_t code, bool action) override;
     bool setAxis(uint8_t code, uint8_t value) override;
     bool setAxis16(uint8_t code, uint16_t value) override;
+
+    bool setKeyUniversal(Key code, bool action) override;
+    bool setDpadUniversal(Dpad8Pos value) override;
+    bool setStick(Stick index, uint8_t x, uint8_t y) override;
+    bool setTrigger(Key code, uint8_t value) override;
 
     bool setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y);
     bool setTouchEvent(uint8_t pos, bool pressed, uint16_t x=0, uint16_t y=0);
@@ -153,6 +158,7 @@ private:
     ds4_feedback_t feedback;
     uint8_t currentTouchSeq;
     void incReportCtr();
+    static const uint8_t keyLookup[];
     bool sendReport_(bool blocking);
 };
 
