@@ -50,7 +50,6 @@ After patching the Teensyduino core library just download and install RDS4Reboot
 - PluggableUSB transport
 - UnoJoy compatibility layer
 - Authentication using Guitar Hero Dongle (needs hack)
-- Per-project library configuration
 - More example sketches
 
 ### Planned
