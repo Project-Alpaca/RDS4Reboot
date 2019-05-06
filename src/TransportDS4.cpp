@@ -58,9 +58,9 @@ int TransportDS4Teensy::frCallbackSet(void *setup_ptr, uint8_t *data) {
 
 bool TransportDS4Teensy::onGetReport(uint16_t value, uint16_t index, uint16_t length) {
     bool result = false;
-    // Report error if nobody responds to the request
-    result = result or FeatureConfigurator<TransportDS4Teensy>::onGetReport(value, index, length);
-    result = result or AuthenticationHandlerDS4<TransportDS4Teensy>::onGetReport(value, index, length);
+    // Report error if nobody responds to the request and return true as soon as somebody responds.
+    result = FeatureConfigurator<TransportDS4Teensy>::onGetReport(value, index, length) or \
+             AuthenticationHandlerDS4<TransportDS4Teensy>::onGetReport(value, index, length);
     return result;
 }
 
