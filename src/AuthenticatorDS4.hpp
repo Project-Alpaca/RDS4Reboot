@@ -97,10 +97,10 @@ public:
     bool setChallengePageSize(uint8_t size) override { return false; }
     bool setResponsePageSize(uint8_t size) override { return false; }
     bool endOfChallenge(uint8_t page) override {
-        return (((uint16_t) page+1) * this->getChallengePageSize()) > AuthenticatorDS4USBH::CHALLENGE_SIZE;
+        return ((static_cast<uint16_t>(page)+1) * this->getChallengePageSize()) > AuthenticatorDS4USBH::CHALLENGE_SIZE;
     }
     bool endOfResponse(uint8_t page) override {
-        return (((uint16_t) page+1) * this->getResponsePageSize()) > AuthenticatorDS4USBH::RESPONSE_SIZE;
+        return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) > AuthenticatorDS4USBH::RESPONSE_SIZE;
     }
     bool reset() override;
     size_t writeChallengePage(uint8_t page, void *buf, size_t len) override;
