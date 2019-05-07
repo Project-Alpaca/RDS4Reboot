@@ -405,8 +405,16 @@ public:
      *  @see Dpad8Pos
      */
     bool setDpadSOCD(uint8_t code, bool n, bool e, bool s, bool w) {
-        auto pos = Dpad8Pos::C;
         auto *cobj = static_cast<C *>(this);
+        return cobj->setDpad(code, this->doCleaning(n, e, s, w));
+    }
+    bool setDpadUniversalSOCD(bool n, bool e, bool s, bool w) {
+        auto *cobj = static_cast<C *>(this);
+        return cobj->setDpadUniversal(this->doCleaning(n, e, s, w));
+    }
+private:
+    Dpad8Pos doCleaning(bool n, bool e, bool s, bool w) {
+        auto pos = Dpad8Pos::C;
         // Clean the input
         if (n and s) {
             switch (NS) {
@@ -469,7 +477,7 @@ public:
         } else {
             pos = Dpad8Pos::C;
         }
-        return cobj->setDpad(code, pos);
+        return pos;
     }
 }; // SOCDBehavior
 } // namespace rds4

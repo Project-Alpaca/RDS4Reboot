@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "internals.hpp"
+
 namespace rds4 {
 
 typedef struct {
@@ -41,19 +43,12 @@ typedef struct {
     uint8_t rightStickY : 8;
 } dataForController_t;
 
-class UnoJoyBase {
+template <class T>
+class UnoJoyAPI {
 public:
-    virtual void setControllerData(dataForController_t buf) = 0;
+    void setControllerData(dataForController_t buf);
 };
 
-dataForController_t getBlankDataForController() {
-    static dataForController_t buf;
-    memset(&buf, 0, sizeof(buf));
-    buf.leftStickX = 0x80;
-    buf.leftStickY = 0x80;
-    buf.rightStickX = 0x80;
-    buf.rightStickY = 0x80;
-    return buf;
-}
+extern dataForController_t getBlankDataForController();
 
 } // rds4
