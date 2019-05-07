@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 /** UnoJoyAPI.hpp
  *  UnoJoy API definitions.
  *
  *  Copyright 2019 dogtopus
- *  SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
 #pragma once

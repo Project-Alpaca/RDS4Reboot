@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 /** utils.cpp
  *  Various utility functions.
  *
  *  Copyright 2019 dogtopus
- *  SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
 #include "utils.hpp"

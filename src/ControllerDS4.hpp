@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 /** ControllerDS4.hpp
  *  High-level report handling API for PS4 controllers.
  *
  *  Copyright 2019 dogtopus
- *  SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
 #pragma once

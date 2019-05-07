@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 /** AuthenticatorDS4.cpp
  *  Authenticator for PS4 controllers via various back-ends.
  *
  *  Copyright 2019 dogtopus
- *  SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
 #include "AuthenticatorDS4.hpp"

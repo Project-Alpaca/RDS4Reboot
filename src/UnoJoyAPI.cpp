@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+/** UnoJoyAPI.cpp
+ *  UnoJoy API definitions.
+ *
+ *  Copyright 2019 dogtopus
+ */
+
 #include "UnoJoyAPI.hpp"
 
 namespace rds4 {
