@@ -164,7 +164,7 @@ private:
 };
 
 template <Dpad8Pos NS=Dpad8Pos::C, Dpad8Pos WE=Dpad8Pos::C>
-class ControllerDS4SOCD : public ControllerDS4, public UnoJoyAPI<SOCDBehavior<ControllerDS4, NS, WE>> {
+class ControllerDS4SOCD : public ControllerDS4, public SOCDBehavior<ControllerDS4SOCD<NS, WE>, NS, WE>, public UnoJoyAPI<ControllerDS4SOCD<NS, WE>> {
 public:
     ControllerDS4SOCD(TransportBase *backend) : ControllerDS4(backend) {};
 };
