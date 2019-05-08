@@ -37,18 +37,11 @@ After patching the Teensyduino core library just download and install RDS4Reboot
   - Hori Mini
 - Authentication over USB Host Shield authenticator and Teensy USB transport
 - Interrupt IN/OUT reports over Teensy USB transport
-
-### Not (throughly) tested
-
-- Example sketch(es)
-- Feedback report handling
-- Input report manipulation
-- Teensy transport (needs more testing)
+- UnoJoy compatibility layer
 
 ### Does not work/WIP
 
 - PluggableUSB transport
-- UnoJoy compatibility layer
 - Authentication using Guitar Hero Dongle (needs hack)
 - More example sketches
 
