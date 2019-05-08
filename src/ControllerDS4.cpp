@@ -72,8 +72,15 @@ inline bool ControllerDS4::sendReport_(bool blocking) {
         return false;
     } else {
         this->incReportCtr();
-        // Touch events are not persisted across each report.
-        this->clearTouchEvents();
+        if (this->report.tp_available_frame > 1) {
+            // copy the last frame to the first slot and nuke the rest
+            memcpy(&this->report.frames[0], &this->report.frames[this->report.tp_available_frame - 1], sizeof(this->report.frames[0]));
+            for (uint8_t i=1; i<3; i++) {
+                this->report.frames[i].pos[0] = 1 << 7;
+                this->report.frames[i].pos[1] = 1 << 7;
+            }
+            this->report.tp_available_frame = 1;
+        }
         return true;
     }
     return false;
