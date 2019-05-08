@@ -16,15 +16,30 @@
 namespace rds4 {
 
 #ifdef RDS4_AUTH_USBH
-AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : wasConnected(false), donor(donor) { }
+
+uint8_t PS4USB2::OnInitSuccessful() {
+    if (this->VIDPIDOK(::HIDUniversal::VID, ::HIDUniversal::PID)) {
+        PS4Parser::Reset();
+        if (this->auth != nullptr) {
+            this->auth->onStateChange();
+        }
+        if (this->isLicensed()) {
+            this->setLed(Blue);
+        }
+    }
+    return 0;
+}
+
+void PS4USB2::registerAuthenticator(AuthenticatorDS4USBH *auth) {
+    this->auth = auth;
+}
+
+AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : donor(donor) {
+    donor->registerAuthenticator(this);
+}
 
 bool AuthenticatorDS4USBH::available() {
     auto state = this->donor->connected();
-    if ((!this->wasConnected) and state) {
-        RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: Hotplug detected, re-fitting buffer");
-        this->fitPageSize();
-    }
-    this->wasConnected = state;
     return state;
 }
 
@@ -161,6 +176,11 @@ uint8_t AuthenticatorDS4USBH::getActualChallengePageSize(uint8_t page) {
 uint8_t AuthenticatorDS4USBH::getActualResponsePageSize(uint8_t page) {
     uint16_t remaining = AuthenticatorDS4USBH::RESPONSE_SIZE - (uint16_t) this->responsePageSize * page;
     return remaining > this->responsePageSize ? this->responsePageSize : (uint8_t) remaining;
+}
+
+void AuthenticatorDS4USBH::onStateChange() {
+    RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: Hotplug detected, re-fitting buffer");
+    this->fitPageSize();
 }
 
 #endif // RDS4_AUTH_USBH

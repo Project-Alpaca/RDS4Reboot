@@ -34,6 +34,7 @@ enum class DS4AuthState : uint8_t {
 template <class TR, bool strictCRC=false>
 class AuthenticationHandlerDS4 : public AuthenticationHandlerBase {
 public:
+    typedef void (*StateChangeCallback)(void);
     AuthenticationHandlerDS4(AuthenticatorBase *auth) : AuthenticationHandlerBase(auth),
                                                         state(DS4AuthState::IDLE),
                                                         page(-1),
@@ -43,6 +44,9 @@ public:
         this->auth->begin();
     }
     void update() override;
+    void attachStateChangeCallback(StateChangeCallback callback) {
+        _notifyStateChange = callback;
+    }
 
 protected:
     DS4AuthState state;
@@ -52,6 +56,12 @@ protected:
     uint8_t scratchPad[64];
     bool onGetReport(uint16_t value, uint16_t index, uint16_t length) override;
     bool onSetReport(uint16_t value, uint16_t index, uint16_t length) override;
+    void notifyStateChange(void) {
+        if (this->_notifyStateChange != nullptr) {
+            (*this->_notifyStateChange)();
+        }
+    }
+    StateChangeCallback _notifyStateChange;
 };
 
 template <class TR, bool strictCRC>
@@ -187,12 +197,15 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onSetReport(uint16_t value, uint16
                     this->page = 0;
                     this->seq = pkt->seq;
                     this->state = DS4AuthState::NONCE_RECEIVED;
+                    this->notifyStateChange();
                 } else if (this->state == DS4AuthState::WAIT_NONCE) {
                     // If currently waiting for more nonce, make sure the order is consistent. Otherwise go to error state.
                     if (pkt->seq == this->seq and pkt->page == this->page + 1) {
                         RDS4_DBG_PRINTLN("cont");
                         this->page++;
                         this->state = DS4AuthState::NONCE_RECEIVED;
+                        this->notifyStateChange();
+                        this->notifyStateChange();
                     } else {
                         RDS4_DBG_PRINTLN("ooo");
                         this->state = DS4AuthState::ERROR;
@@ -221,6 +234,7 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                 // Will be processed in update()
                 if (this->state == DS4AuthState::RESP_BUFFERED) {
                     this->state = DS4AuthState::RESP_UNLOADED;
+                    this->notifyStateChange();
                 } else {
                     // TODO do we need to clean the buffer?
                     this->state = DS4AuthState::ERROR;
@@ -245,6 +259,7 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                         pkt.status = 0x10; // busy
                         // notify the other end that the host polled us
                         this->state = DS4AuthState::POLL_RESP;
+                        this->notifyStateChange();
                         break;
                     // Something went wrong or not in a transaction
                     case DS4AuthState::ERROR:

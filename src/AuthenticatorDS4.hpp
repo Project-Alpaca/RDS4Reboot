@@ -40,6 +40,9 @@ class AuthenticatorDS4Null : public AuthenticatorBase {
 
 #ifdef RDS4_AUTH_USBH
 
+class AuthenticatorDS4USBH;
+
+// TODO reading reports on licensed controllers don't work
 /** Modified PS4USB class that adds basic support for some licensed PS4 controllers. */
 class PS4USB2 : public ::PS4USB {
 public:
@@ -64,7 +67,8 @@ public:
     }
 
 protected:
-    virtual bool VIDPIDOK(uint16_t vid, uint16_t pid) {
+    friend class AuthenticatorDS4USBH;
+    bool VIDPIDOK(uint16_t vid, uint16_t pid) override {
         return (( \
             vid == PS4_VID and ( \
                 pid == PS4_PID or \
@@ -80,6 +84,11 @@ protected:
             ) \
         ));
     }
+
+    uint8_t OnInitSuccessful() override;
+    void registerAuthenticator(AuthenticatorDS4USBH *auth);
+private:
+    AuthenticatorDS4USBH *auth;
 };
 
 /** DS4 authenticator that uses USB PS4 controllers as the backend via USB Host Shield 2.x library. */
@@ -107,10 +116,12 @@ public:
     size_t readResponsePage(uint8_t page, void *buf, size_t len) override;
     AuthStatus getStatus() override;
 
+protected:
+    friend class PS4USB2;
+    void onStateChange();
 private:
     uint8_t getActualChallengePageSize(uint8_t page);
     uint8_t getActualResponsePageSize(uint8_t page);
-    bool wasConnected;
     PS4USB2 *donor;
     uint8_t scratchPad[64];
 };
