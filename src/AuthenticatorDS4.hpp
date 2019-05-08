@@ -106,10 +106,10 @@ public:
     bool setChallengePageSize(uint8_t size) override { return false; }
     bool setResponsePageSize(uint8_t size) override { return false; }
     bool endOfChallenge(uint8_t page) override {
-        return ((static_cast<uint16_t>(page)+1) * this->getChallengePageSize()) > AuthenticatorDS4USBH::CHALLENGE_SIZE;
+        return ((static_cast<uint16_t>(page)+1) * this->getChallengePageSize()) >= AuthenticatorDS4USBH::CHALLENGE_SIZE;
     }
     bool endOfResponse(uint8_t page) override {
-        return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) > AuthenticatorDS4USBH::RESPONSE_SIZE;
+        return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) >= AuthenticatorDS4USBH::RESPONSE_SIZE;
     }
     bool reset() override;
     size_t writeChallengePage(uint8_t page, void *buf, size_t len) override;
@@ -124,6 +124,9 @@ private:
     uint8_t getActualResponsePageSize(uint8_t page);
     PS4USB2 *donor;
     uint8_t scratchPad[64];
+    bool statusOverrideEnabled;
+    uint32_t statusOverrideTransactionStartTime;
+    bool statusOverrideInTransaction;
 };
 
 #endif // RDS4_AUTH_USBH

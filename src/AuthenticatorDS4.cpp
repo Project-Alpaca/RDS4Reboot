@@ -34,7 +34,7 @@ void PS4USB2::registerAuthenticator(AuthenticatorDS4USBH *auth) {
     this->auth = auth;
 }
 
-AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : donor(donor) {
+AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : donor(donor), statusOverrideEnabled(false), statusOverrideTransactionStartTime(0), statusOverrideInTransaction(false) {
     donor->registerAuthenticator(this);
 }
 
@@ -102,6 +102,12 @@ size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t 
     }
     RDS4_DBG_PHEX(expected);
     RDS4_DBG_PRINTLN(" bytes written");
+    // Guitar Hero Dongle hack
+    if (this->statusOverrideEnabled and this->endOfChallenge(page)) {
+        RDS4_DBG_PRINTLN("gh hack timer start");
+        this->statusOverrideInTransaction = true;
+        this->statusOverrideTransactionStartTime = millis();
+    }
     return expected;
 }
 
@@ -131,12 +137,28 @@ size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t le
     memcpy(buf, &authbuf->data, expected);
     RDS4_DBG_PHEX(expected);
     RDS4_DBG_PRINTLN(" bytes read");
+    // Guitar Hero Dongle hack
+    if (this->statusOverrideEnabled and this->endOfResponse(page)) {
+        RDS4_DBG_PRINTLN("gh hack end transaction");
+        this->statusOverrideInTransaction = false;
+    }
     return expected;
 }
 
 AuthStatus AuthenticatorDS4USBH::getStatus() {
     auto rslbuf = (ds4_auth_status_t *) &(this->scratchPad);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: getting status");
+    if (this->statusOverrideEnabled) {
+        RDS4_DBG_PRINTLN("gh hack enabled");
+        // wait for 2 seconds since the GH dongle takes about 2 seconds to sign the challenge
+        if (this->statusOverrideInTransaction and millis() - this->statusOverrideTransactionStartTime > 2000) {
+            return AuthStatus::OK;
+        } else if (this->statusOverrideInTransaction) {
+            return AuthStatus::BUSY;
+        } else {
+            return AuthStatus::NO_TRANSACTION;
+        }
+    }
     memset(rslbuf, 0, sizeof(*rslbuf));
     if (this->donor->GetReport(0, 0, 0x03, ControllerDS4::GET_AUTH_STATUS, sizeof(*rslbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm err");
@@ -144,11 +166,7 @@ AuthStatus AuthenticatorDS4USBH::getStatus() {
     }
     switch (rslbuf->status) {
         case 0x00:
-            // TODO what about GH dongle?
-            // The GH dongle takes about 2 seconds to sign the challenge
-            // if (this->donor->isQuirky()) { ...; return AuthStatus::BUSY; }
-            // GH dongle also has wrong return value for busy (returns NO_TRANSACTION)
-            // Perhaps skip status all together?
+            
             RDS4_DBG_PRINTLN("ok");
             return AuthStatus::OK;
             break;
@@ -181,6 +199,7 @@ uint8_t AuthenticatorDS4USBH::getActualResponsePageSize(uint8_t page) {
 void AuthenticatorDS4USBH::onStateChange() {
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: Hotplug detected, re-fitting buffer");
     this->fitPageSize();
+    this->statusOverrideEnabled = this->donor->isQuirky();
 }
 
 #endif // RDS4_AUTH_USBH
