@@ -42,7 +42,6 @@ After patching the Teensyduino core library just download and install RDS4Reboot
 ### Does not work/WIP
 
 - PluggableUSB transport
-- Authentication using Guitar Hero Dongle (needs hack)
 - More example sketches
 
 ### Planned
