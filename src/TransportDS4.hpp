@@ -157,6 +157,8 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                 pkt->seq = this->seq;
                 pkt->page = this->page;
                 pkt->crc32 = strictCRC ? crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
+                // clear the buffer just in case
+                memset(&(pkt->data), 0, sizeof(pkt->data));
                 if (this->auth->readResponsePage(this->page, &(pkt->data), sizeof(pkt->data))) {
                     this->state = DS4AuthState::RESP_BUFFERED;
                 } else {
