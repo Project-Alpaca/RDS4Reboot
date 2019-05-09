@@ -17,13 +17,14 @@ Simply put, existing software/boards like B\*\*\*k, C\*\*\*\*\*u, P\*\*\*0, etc.
 - Fightsticks
 - Rhythm game controllers
 - Accessible controllers
+- Keyboard/mouse/joystick/gamepad converters
 - Creative projects (e.g. beat <strike>Dark Souls</strike> <strike>BloodBorne</strike> Sekiro with bananas, etc.)
 
 ## Usage
 
 Currently the library only supports Teensy 3.x (including LC). A patched version of Teensyduino core (version 1.45 at the moment) is required, which can be found [here][td-ds4].
 
-For Teensyduino IDE users, there are two ways to install the patched library. One way is to run `scripts/makepatch.sh` and apply the generated patch file using the `patch` tool to an existing Teensyduino core installation. The other way is to directly replace the core library of a working installation with the patched version. Then you might want to edit the `boards.txt` in a similar fashion as [this][td-boards] (with necessary changes like replace `USB_XINPUT` with `USB_DS4STUB` and so on). For PlatformIO users, it is possible to use the companion script hosted [here][td-pfio] and follow the instruction [here][td-pfio-readme]. Afterwards add `-DUSB_DS4STUB -UUSB_SERIAL -DCORE_TEENSY -D_ARM_` to the build parameters.
+For Teensyduino IDE users, there are two ways to install the patched library. One way is to run `scripts/makepatch.sh` and apply the generated patch file using the `patch` tool to an existing Teensyduino core installation. The other way is to directly replace the core library of a working installation with the patched version. Then you might want to edit the `boards.txt` in a similar fashion as [this][td-boards] (with necessary changes like replace `USB_XINPUT` with `USB_DS4STUB` and so on). For PlatformIO users, it is possible to use the companion script hosted [here][td-pfio] and follow the instruction [here][td-pfio-readme]. Afterwards add `-DUSB_DS4STUB -UUSB_SERIAL` to the build parameters.
 
 After patching the Teensyduino core library just download and install RDS4Reboot normally.
 

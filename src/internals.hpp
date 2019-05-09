@@ -7,39 +7,9 @@
 
 #pragma once
 
+#include "platform.hpp"
+
 // TODO: More documentation
-
-// Modern Arduino environment (>= 1.6.6)
-#if defined(ARDUINO) && ARDUINO >= 10606
-#define RDS4_ARDUINO
-
-// Check for teensy
-#if defined(CORE_TEENSY) && !defined(_AVR_)
-#define RDS4_TEENSY_3
-#endif
-
-#include <Arduino.h>
-
-// Older Arduino environment
-#elif defined(ARDUINO) && ARDUINO >= 100
-#define RDS4_ARDUINO_LEGACY
-#warning "C++11 features may not be enabled on Arduino < 1.6.6. Build may fail."
-
-// Legacy Arduino environment (Does it even work?)
-//#elif defined(ARDUINO)
-//#include <WProgram.h>
-
-// Linux
-#elif defined(RDS4_LINUX)
-// for int*_t
-#include <cstdint>
-// for size_t
-#include <cstddef>
-
-#else
-#error "Unknown/unsupported environment. If you are targeting for Linux system did you forget to set RDS4_LINUX?"
-
-#endif
 
 namespace rds4 {
 

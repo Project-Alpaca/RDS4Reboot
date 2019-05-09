@@ -8,7 +8,7 @@
 #pragma once
 
 // For sysdep
-#include "internals.hpp"
+#include "platform.hpp"
 
 #ifdef RDS4_DEBUG
 

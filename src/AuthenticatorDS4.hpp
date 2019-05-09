@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "platform.hpp"
 #include "internals.hpp"
 
 // Sigh... https://github.com/arduino/arduino-builder/issues/15#issuecomment-145558252

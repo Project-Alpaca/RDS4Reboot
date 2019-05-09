@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "platform.hpp"
 #include "internals.hpp"
 #include "ControllerDS4.hpp"
 #include "utils.hpp"
