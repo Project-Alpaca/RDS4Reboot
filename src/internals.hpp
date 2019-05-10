@@ -12,6 +12,7 @@
 // TODO: More documentation
 
 namespace rds4 {
+namespace api {
 
 /** Base class for a Transport class.
  *  A Transport object should be able to handle high-level report transferring
@@ -450,4 +451,5 @@ private:
         return pos;
     }
 }; // SOCDBehavior
+} // namespace api
 } // namespace rds4

@@ -8,6 +8,7 @@
 #include "utils.hpp"
 
 namespace rds4 {
+namespace utils {
 
 static const uint32_t crc32_table_4b[] = {
     0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,
@@ -26,4 +27,5 @@ uint32_t crc32(void *buf, size_t len) {
     return result ^ 0xfffffffful;
 }
 
+}
 }

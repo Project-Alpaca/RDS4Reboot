@@ -40,5 +40,7 @@
 #endif
 
 namespace rds4 {
+namespace utils {
 extern uint32_t crc32(void *buf, size_t len);
+}
 }

@@ -23,6 +23,7 @@
 static const uint8_t MAX_PACKETS = 4;
 
 namespace rds4 {
+namespace ds4 {
 
 TransportDS4Teensy *TransportDS4Teensy::inst = nullptr;
 uint8_t *TransportDS4Teensy::frBuffer = nullptr;
@@ -158,5 +159,6 @@ uint8_t TransportDS4Teensy::check(void *buf, uint8_t len) {
     }
     return 0;
 }
+} // ds4
 } // rds4
 #endif

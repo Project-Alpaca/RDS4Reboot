@@ -14,8 +14,9 @@
 #endif
 
 namespace rds4 {
+namespace ds4 {
 
-const uint8_t ControllerDS4::keyLookup[static_cast<uint8_t>(Key::_COUNT)] = {
+const uint8_t ControllerDS4::keyLookup[static_cast<uint8_t>(api::Key::_COUNT)] = {
     ControllerDS4::KEY_CIR,
     ControllerDS4::KEY_XRO,
     ControllerDS4::KEY_TRI,
@@ -31,14 +32,14 @@ const uint8_t ControllerDS4::keyLookup[static_cast<uint8_t>(Key::_COUNT)] = {
     ControllerDS4::KEY_OPT,
 };
 
-ControllerDS4::ControllerDS4(TransportBase *backend) : ControllerBase(backend), currentTouchSeq(0) { /* pass */ };
+ControllerDS4::ControllerDS4(api::TransportBase *backend) : api::ControllerBase(backend), currentTouchSeq(0) { /* pass */ };
 
 void ControllerDS4::begin() {
     this->backend->begin();
     memset(&(this->report), 0, sizeof(this->report));
     this->report.type = 0x01;
     // Center the D-Pad
-    this->setRotary8Pos(0, Rotary8Pos::C);
+    this->setRotary8Pos(0, api::Rotary8Pos::C);
     // Analog sticks
     memset(this->report.sticks, 0x80, sizeof(this->report.sticks));
     // Touch
@@ -99,7 +100,7 @@ inline void ControllerDS4::incReportCtr() {
     this->report.buttons[2] += 4;
 }
 
-bool ControllerDS4::setRotary8Pos(uint8_t code, Rotary8Pos value) {
+bool ControllerDS4::setRotary8Pos(uint8_t code, api::Rotary8Pos value) {
     if (code != 0) {
         return false;
     }
@@ -145,16 +146,16 @@ bool ControllerDS4::setAxis16(uint8_t code, uint16_t value) {
     return false;
 }
 
-bool ControllerDS4::setKeyUniversal(Key code, bool action) {
-    if (code == Key::_COUNT) {
+bool ControllerDS4::setKeyUniversal(api::Key code, bool action) {
+    if (code == api::Key::_COUNT) {
         return false;
     }
     auto ds4Code = this->keyLookup[static_cast<uint8_t>(code)];
     switch (code) {
-        case Key::LTrigger:
+        case api::Key::LTrigger:
             this->setAxis(ControllerDS4::AXIS_L2, action ? 0xff : 0x0);
             break;
-        case Key::RTrigger:
+        case api::Key::RTrigger:
             this->setAxis(ControllerDS4::AXIS_R2, action ? 0xff : 0x0);
             break;
         default:
@@ -164,17 +165,17 @@ bool ControllerDS4::setKeyUniversal(Key code, bool action) {
     return true;
 }
 
-bool ControllerDS4::setDpadUniversal(Dpad8Pos value) {
+bool ControllerDS4::setDpadUniversal(api::Dpad8Pos value) {
     return this->setDpad(0, value);
 }
 
-bool ControllerDS4::setStick(Stick index, uint8_t x, uint8_t y) {
+bool ControllerDS4::setStick(api::Stick index, uint8_t x, uint8_t y) {
     switch (index) {
-        case Stick::L:
+        case api::Stick::L:
             this->setAxis(ControllerDS4::AXIS_LX, x);
             this->setAxis(ControllerDS4::AXIS_LY, y);
             break;
-        case Stick::R:
+        case api::Stick::R:
             this->setAxis(ControllerDS4::AXIS_RX, x);
             this->setAxis(ControllerDS4::AXIS_RY, y);
             break;
@@ -182,13 +183,13 @@ bool ControllerDS4::setStick(Stick index, uint8_t x, uint8_t y) {
     return true;
 }
 
-bool ControllerDS4::setTrigger(Key code, uint8_t value) {
+bool ControllerDS4::setTrigger(api::Key code, uint8_t value) {
     auto ds4Code = this->keyLookup[static_cast<uint8_t>(code)];
     switch (code) {
-        case Key::LTrigger:
+        case api::Key::LTrigger:
             this->setAxis(ControllerDS4::AXIS_L2, value);
             break;
-        case Key::RTrigger:
+        case api::Key::RTrigger:
             this->setAxis(ControllerDS4::AXIS_R2, value);
             break;
         default:
@@ -252,5 +253,5 @@ uint32_t ControllerDS4::getLEDRGB() {
     return (this->feedback.led_color[0] << 16 | this->feedback.led_color[1] << 8 | this->feedback.led_color[2]);
 }
 
-
+}
 }

@@ -11,6 +11,7 @@
 #include "internals.hpp"
 
 namespace rds4 {
+namespace api {
 
 typedef struct {
     // keys byte 0
@@ -70,4 +71,5 @@ public:
 
 extern dataForController_t getBlankDataForController();
 
+} // api
 } // rds4

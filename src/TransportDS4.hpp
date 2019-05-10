@@ -19,6 +19,7 @@
 #endif
 
 namespace rds4 {
+namespace ds4 {
 
 enum class DS4AuthState : uint8_t {
     IDLE,
@@ -35,10 +36,10 @@ enum class DS4AuthState : uint8_t {
   * authentication requests.
   */
 template <class TR, bool strictCRC=false>
-class AuthenticationHandlerDS4 : public AuthenticationHandlerBase {
+class AuthenticationHandlerDS4 : public api::AuthenticationHandlerBase {
 public:
     typedef void (*StateChangeCallback)(void);
-    AuthenticationHandlerDS4(AuthenticatorBase *auth) : AuthenticationHandlerBase(auth),
+    AuthenticationHandlerDS4(api::AuthenticatorBase *auth) : AuthenticationHandlerBase(auth),
                                                         state(DS4AuthState::IDLE),
                                                         page(-1),
                                                         seq(0),
@@ -114,14 +115,14 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                 RDS4_DBG_PRINTLN("AuthenticationHandlerDS4: checking auth status");
                 switch (as) {
                     // Authenticator is ready to answer the challenge.
-                    case AuthStatus::OK: {
+                    case api::AuthStatus::OK: {
                         // buffer the first response packet
                         auto *pkt = reinterpret_cast<ds4_auth_t *>(&(this->scratchPad));
                         RDS4_DBG_PRINTLN("ok");
                         pkt->type = ControllerDS4::GET_RESPONSE;
                         pkt->seq = this->seq;
                         pkt->page = 0;
-                        pkt->crc32 = strictCRC ? crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
+                        pkt->crc32 = strictCRC ? utils::crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
                         this->page = 0;
 
                         if (this->auth->readResponsePage(this->page, &(pkt->data), sizeof(pkt->data))) {
@@ -133,7 +134,7 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                         break;
                     }
                     // Authenticator is busy, wait for some more time.
-                    case AuthStatus::BUSY:
+                    case api::AuthStatus::BUSY:
                         // Wait until host polls again.
                         RDS4_DBG_PRINTLN("busy");
                         this->state = DS4AuthState::WAIT_RESP;
@@ -160,7 +161,7 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                 pkt->type = ControllerDS4::GET_RESPONSE;
                 pkt->seq = this->seq;
                 pkt->page = this->page;
-                pkt->crc32 = strictCRC ? crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
+                pkt->crc32 = strictCRC ? utils::crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
                 // clear the buffer just in case
                 memset(&(pkt->data), 0, sizeof(pkt->data));
                 if (this->auth->readResponsePage(this->page, &(pkt->data), sizeof(pkt->data))) {
@@ -252,7 +253,7 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                 ds4_auth_status_t pkt = {0};
                 pkt.type = ControllerDS4::GET_AUTH_STATUS;
                 pkt.seq = this->seq;
-                pkt.crc32 = strictCRC ? crc32(&pkt, sizeof(pkt) - sizeof(pkt.crc32)) : 0;
+                pkt.crc32 = strictCRC ? utils::crc32(&pkt, sizeof(pkt) - sizeof(pkt.crc32)) : 0;
                 switch (this->state) {
                     // Already responding to the host (aka. ready)
                     case DS4AuthState::RESP_BUFFERED:
@@ -339,9 +340,9 @@ typedef struct {
 
 /** Tansport backend for teensy 3.x/LC boards. Requires patched teensyduino core library */
 class TransportDS4Teensy;
-class TransportDS4Teensy : public TransportBase, public AuthenticationHandlerDS4<TransportDS4Teensy>, public FeatureConfigurator<TransportDS4Teensy> {
+class TransportDS4Teensy : public api::TransportBase, public AuthenticationHandlerDS4<TransportDS4Teensy>, public FeatureConfigurator<TransportDS4Teensy> {
 public:
-    TransportDS4Teensy(AuthenticatorBase *auth) : AuthenticationHandlerDS4(auth) {
+    TransportDS4Teensy(api::AuthenticatorBase *auth) : AuthenticationHandlerDS4(auth) {
         TransportDS4Teensy::inst = this;
         usb_ds4stub_on_get_report = &(TransportDS4Teensy::frCallbackGet);
         usb_ds4stub_on_set_report = &(TransportDS4Teensy::frCallbackSet);
@@ -450,4 +451,5 @@ class TransportStdio : public TransportBase {
 
 #endif // RDS4_MOCK
 #endif
+} // namespace ds4
 } // namespace rds4

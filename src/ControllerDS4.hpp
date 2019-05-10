@@ -12,6 +12,7 @@
 #include "UnoJoyAPI.hpp"
 
 namespace rds4 {
+namespace ds4 {
 
 typedef struct {
     uint8_t seq; // 34
@@ -91,7 +92,7 @@ typedef struct {
     uint32_t crc32; // 12-15
 } __attribute__((packed)) ds4_auth_status_t;
 
-class ControllerDS4 : public ControllerBase {
+class ControllerDS4 : public api::ControllerBase {
 public:
     enum : uint8_t {
         ROT_MAIN = 0,
@@ -128,20 +129,20 @@ public:
         GET_AUTH_STATUS,
         GET_AUTH_PAGE_SIZE,
     };
-    ControllerDS4(TransportBase *backend);
+    ControllerDS4(api::TransportBase *backend);
     void begin() override;
     void update();
     bool sendReport() override;
     bool sendReportBlocking() override;
-    bool setRotary8Pos(uint8_t code, Rotary8Pos value) override;
+    bool setRotary8Pos(uint8_t code, api::Rotary8Pos value) override;
     bool setKey(uint8_t code, bool action) override;
     bool setAxis(uint8_t code, uint8_t value) override;
     bool setAxis16(uint8_t code, uint16_t value) override;
 
-    bool setKeyUniversal(Key code, bool action) override;
-    bool setDpadUniversal(Dpad8Pos value) override;
-    bool setStick(Stick index, uint8_t x, uint8_t y) override;
-    bool setTrigger(Key code, uint8_t value) override;
+    bool setKeyUniversal(api::Key code, bool action) override;
+    bool setDpadUniversal(api::Dpad8Pos value) override;
+    bool setStick(api::Stick index, uint8_t x, uint8_t y) override;
+    bool setTrigger(api::Key code, uint8_t value) override;
 
     bool setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y);
     bool setTouchEvent(uint8_t pos, bool pressed, uint16_t x=0, uint16_t y=0);
@@ -164,10 +165,11 @@ private:
     bool sendReport_(bool blocking);
 };
 
-template <Dpad8Pos NS=Dpad8Pos::C, Dpad8Pos WE=Dpad8Pos::C>
-class ControllerDS4SOCD : public ControllerDS4, public SOCDBehavior<ControllerDS4SOCD<NS, WE>, NS, WE>, public UnoJoyAPI<ControllerDS4SOCD<NS, WE>> {
+template <api::Dpad8Pos NS=api::Dpad8Pos::C, api::Dpad8Pos WE=api::Dpad8Pos::C>
+class ControllerDS4SOCD : public ControllerDS4, public api::SOCDBehavior<ControllerDS4SOCD<NS, WE>, NS, WE>, public api::UnoJoyAPI<ControllerDS4SOCD<NS, WE>> {
 public:
-    ControllerDS4SOCD(TransportBase *backend) : ControllerDS4(backend) {};
+    ControllerDS4SOCD(api::TransportBase *backend) : ControllerDS4(backend) {};
 };
 
+} // namespace ds4
 } // namespace rds4

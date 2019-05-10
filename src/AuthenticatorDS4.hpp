@@ -24,8 +24,9 @@
 #endif
 
 namespace rds4 {
+namespace ds4 {
 
-class AuthenticatorDS4Null : public AuthenticatorBase {
+class AuthenticatorDS4Null : public api::AuthenticatorBase {
     void begin() { this->fitPageSize(); }
     bool available() override { return true; }
     bool canFitPageSize() override { return true; }
@@ -41,7 +42,7 @@ class AuthenticatorDS4Null : public AuthenticatorBase {
     bool reset() override { return true; }
     size_t writeChallengePage(uint8_t page, void *buf, size_t len) { return len; }
     size_t readResponsePage(uint8_t page, void *buf, size_t len) { return 0; }
-    AuthStatus getStatus() override { return AuthStatus::UNKNOWN_ERR; }
+    api::AuthStatus getStatus() override { return api::AuthStatus::UNKNOWN_ERR; }
 };
 
 #ifdef RDS4_AUTH_USBH
@@ -98,7 +99,7 @@ private:
 };
 
 /** DS4 authenticator that uses USB PS4 controllers as the backend via USB Host Shield 2.x library. */
-class AuthenticatorDS4USBH : public AuthenticatorBase {
+class AuthenticatorDS4USBH : public api::AuthenticatorBase {
 public:
     static const uint8_t PAYLOAD_MAX = 0x38;
     static const uint16_t CHALLENGE_SIZE = 0x100;
@@ -120,7 +121,7 @@ public:
     bool reset() override;
     size_t writeChallengePage(uint8_t page, void *buf, size_t len) override;
     size_t readResponsePage(uint8_t page, void *buf, size_t len) override;
-    AuthStatus getStatus() override;
+    api::AuthStatus getStatus() override;
 
 protected:
     friend class PS4USB2;
@@ -136,4 +137,5 @@ private:
 };
 
 #endif // RDS4_AUTH_USBH
+}
 }

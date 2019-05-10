@@ -14,6 +14,7 @@
 #endif
 
 namespace rds4 {
+namespace ds4 {
 
 #ifdef RDS4_AUTH_USBH
 
@@ -95,7 +96,7 @@ size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t 
     authbuf->sbz = 0;
     memcpy(&authbuf->data, buf, expected);
     // CRC32 is a must-have for official controller, not sure about licensed ones.
-    authbuf->crc32 = crc32(this->scratchPad, sizeof(*authbuf) - sizeof(authbuf->crc32));
+    authbuf->crc32 = utils::crc32(this->scratchPad, sizeof(*authbuf) - sizeof(authbuf->crc32));
     if (this->donor->SetReport(0, 0, 0x03, ControllerDS4::SET_CHALLENGE, sizeof(*authbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm error");
         return 0;
@@ -145,44 +146,44 @@ size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t le
     return expected;
 }
 
-AuthStatus AuthenticatorDS4USBH::getStatus() {
+api::AuthStatus AuthenticatorDS4USBH::getStatus() {
     auto rslbuf = (ds4_auth_status_t *) &(this->scratchPad);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: getting status");
     if (this->statusOverrideEnabled) {
         RDS4_DBG_PRINTLN("gh hack enabled");
         // wait for 2 seconds since the GH dongle takes about 2 seconds to sign the challenge
         if (this->statusOverrideInTransaction and millis() - this->statusOverrideTransactionStartTime > 2000) {
-            return AuthStatus::OK;
+            return api::AuthStatus::OK;
         } else if (this->statusOverrideInTransaction) {
-            return AuthStatus::BUSY;
+            return api::AuthStatus::BUSY;
         } else {
-            return AuthStatus::NO_TRANSACTION;
+            return api::AuthStatus::NO_TRANSACTION;
         }
     }
     memset(rslbuf, 0, sizeof(*rslbuf));
     if (this->donor->GetReport(0, 0, 0x03, ControllerDS4::GET_AUTH_STATUS, sizeof(*rslbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm err");
-        return AuthStatus::COMM_ERR;
+        return api::AuthStatus::COMM_ERR;
     }
     switch (rslbuf->status) {
         case 0x00:
             
             RDS4_DBG_PRINTLN("ok");
-            return AuthStatus::OK;
+            return api::AuthStatus::OK;
             break;
         case 0x01:
             RDS4_DBG_PRINTLN("not in transaction");
-            return AuthStatus::NO_TRANSACTION;
+            return api::AuthStatus::NO_TRANSACTION;
             break;
         case 0x10:
             RDS4_DBG_PRINTLN("busy");
-            return AuthStatus::BUSY;
+            return api::AuthStatus::BUSY;
             break;
         default:
             RDS4_DBG_PRINT("unk err ");
             RDS4_DBG_PHEX(rslbuf->status);
             RDS4_DBG_PRINT("\n");
-            return AuthStatus::UNKNOWN_ERR;
+            return api::AuthStatus::UNKNOWN_ERR;
     }
 }
 
@@ -204,4 +205,5 @@ void AuthenticatorDS4USBH::onStateChange() {
 
 #endif // RDS4_AUTH_USBH
 
+} // namespace ds4
 } // namespace rds4

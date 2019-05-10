@@ -5,9 +5,11 @@
  *  Copyright 2019 dogtopus
  */
 
+#include "platform.hpp"
 #include "UnoJoyAPI.hpp"
 
 namespace rds4 {
+namespace api {
 
 dataForController_t getBlankDataForController() {
     dataForController_t buf;
@@ -19,4 +21,5 @@ dataForController_t getBlankDataForController() {
     return buf;
 }
 
+}
 }
