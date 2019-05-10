@@ -57,7 +57,7 @@ public:
     const uint16_t RO_VID = 0x1430;
     const uint16_t RO_PID_GHPS4 = 0x07bb;
 
-    PS4USB2(USB *p) : ::PS4USB(p) {};
+    PS4USB2(USB *p) : ::PS4USB(p), auth(nullptr) {};
     bool connected() {
         uint16_t v = ::HIDUniversal::VID;
         uint16_t p = ::HIDUniversal::PID;

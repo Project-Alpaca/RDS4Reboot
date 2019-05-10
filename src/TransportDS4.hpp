@@ -12,6 +12,8 @@
 #include "ControllerDS4.hpp"
 #include "utils.hpp"
 
+#include "usb_ds4stub.h"
+
 #ifdef RDS4_LINUX
 #include <cstdio>
 #endif
@@ -40,7 +42,8 @@ public:
                                                         state(DS4AuthState::IDLE),
                                                         page(-1),
                                                         seq(0),
-                                                        scratchPad{0} {}
+                                                        scratchPad{0},
+                                                        _notifyStateChange(nullptr) {}
     void begin() override {
         this->auth->begin();
     }

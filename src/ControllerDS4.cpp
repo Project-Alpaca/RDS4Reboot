@@ -198,30 +198,6 @@ bool ControllerDS4::setTrigger(Key code, uint8_t value) {
     return true;
 }
 
-static inline bool tpGetState(uint32_t tp) {
-    return ((~(tp >> 7)) & 1);
-}
-
-static inline uint8_t tpGetId(uint32_t tp) {
-    return (tp & 0x7f);
-}
-
-static inline uint16_t tpGetX(uint32_t tp) {
-    return ((tp >> 8) & 0xfff);
-}
-
-static inline uint16_t tpGetY(uint32_t tp) {
-    return ((tp >> 20) & 0xfff);
-}
-
-static inline void tpSetState(uint32_t *tp, bool val) {
-    if (val) {
-        (*tp) |= 0x80;
-    } else {
-        (*tp) &= 0xffffff7ful;
-    }
-}
-
 bool ControllerDS4::setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y) {
     // TODO Bluetooth has different event buffer size
     if (slot >= (sizeof(this->report.frames) / sizeof(ds4_touch_frame_t)) || pos > 1) {
