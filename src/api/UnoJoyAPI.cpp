@@ -5,7 +5,7 @@
  *  Copyright 2019 dogtopus
  */
 
-#include "platform.hpp"
+#include "utils/platform.hpp"
 #include "UnoJoyAPI.hpp"
 
 namespace rds4 {

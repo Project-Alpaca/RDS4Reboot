@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "platform.hpp"
+#include "utils/platform.hpp"
 
 // TODO: More documentation
 

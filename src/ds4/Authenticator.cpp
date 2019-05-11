@@ -5,8 +5,8 @@
  *  Copyright 2019 dogtopus
  */
 
-#include "AuthenticatorDS4.hpp"
-#include "utils.hpp"
+#include "Authenticator.hpp"
+#include "utils/utils.hpp"
 
 #ifdef RDS4_LINUX
 // for memcpy(), etc.

@@ -5,8 +5,8 @@
  *  Copyright 2019 dogtopus
  */
 
-#include "TransportDS4.hpp"
-#include "utils.hpp"
+#include "Transport.hpp"
+#include "utils/utils.hpp"
 
 #if defined(RDS4_ARDUINO) && defined(USBCON)
 

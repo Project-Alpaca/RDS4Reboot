@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "platform.hpp"
-#include "internals.hpp"
+#include "utils/platform.hpp"
+#include "api/internals.hpp"
 
 // Sigh... https://github.com/arduino/arduino-builder/issues/15#issuecomment-145558252
 #ifndef RDS4_MANUAL_CONFIG
@@ -20,7 +20,7 @@
 #ifdef RDS4_AUTH_USBH
 #include <PS4USB.h>
 // For auth structs
-#include "ControllerDS4.hpp"
+#include "Controller.hpp"
 #endif
 
 namespace rds4 {

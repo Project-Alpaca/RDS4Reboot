@@ -7,6 +7,6 @@
 
 #pragma once
 
-#include "AuthenticatorDS4.hpp"
-#include "ControllerDS4.hpp"
-#include "TransportDS4.hpp"
+#include "ds4/Authenticator.hpp"
+#include "ds4/Controller.hpp"
+#include "ds4/Transport.hpp"

@@ -7,12 +7,12 @@
 
 #pragma once
 
-#include "platform.hpp"
-#include "internals.hpp"
-#include "utils.hpp"
+#include "utils/platform.hpp"
+#include "api/internals.hpp"
+#include "utils/utils.hpp"
 
-#include "usb_ds4stub.h"
-#include "ControllerDS4.hpp"
+#include <usb_ds4stub.h>
+#include "Controller.hpp"
 
 #ifdef RDS4_LINUX
 #include <cstdio>
@@ -39,12 +39,12 @@ template <class TR, bool strictCRC=false>
 class AuthenticationHandler : public api::AuthenticationHandler {
 public:
     typedef void (*StateChangeCallback)(void);
-    AuthenticationHandler(api::Authenticator *auth) : AuthenticationHandler(auth),
-                                                        state(DS4AuthState::IDLE),
-                                                        page(-1),
-                                                        seq(0),
-                                                        scratchPad{0},
-                                                        _notifyStateChange(nullptr) {}
+    AuthenticationHandler(api::Authenticator *auth) : api::AuthenticationHandler(auth),
+                                                      state(DS4AuthState::IDLE),
+                                                      page(-1),
+                                                      seq(0),
+                                                      scratchPad{0},
+                                                      _notifyStateChange(nullptr) {}
     void begin() override {
         this->auth->begin();
     }

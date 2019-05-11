@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include "platform.hpp"
-#include "internals.hpp"
-#include "UnoJoyAPI.hpp"
+#include "utils/platform.hpp"
+#include "api/internals.hpp"
+#include "api/UnoJoyAPI.hpp"
 
 namespace rds4 {
 namespace ds4 {

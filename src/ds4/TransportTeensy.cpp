@@ -5,13 +5,13 @@
  *  Copyright 2019 dogtopus
  */
 
-#include "TransportDS4.hpp"
-#include "utils.hpp"
+#include "Transport.hpp"
+#include "utils/utils.hpp"
 
 #if defined(RDS4_ARDUINO) && defined(RDS4_TEENSY_3)
 
-#include "usb_dev.h"
-#include "usb_ds4stub.h"
+#include <usb_dev.h>
+#include <usb_ds4stub.h>
 
 // TODO find a way to get rid of this or translate to static const
 #define DS4_INTERFACE      0	// DS4

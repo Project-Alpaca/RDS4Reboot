@@ -5,9 +5,9 @@
  *  Copyright 2019 dogtopus
  */
 
-#include "ControllerDS4.hpp"
+#include "Controller.hpp"
 
-#include "utils.hpp"
+#include "utils/utils.hpp"
 
 #ifdef RDS4_LINUX
 // for memcpy(), etc.
