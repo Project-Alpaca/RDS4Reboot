@@ -92,7 +92,7 @@ struct AuthStatusReport {
     uint32_t crc32; // 12-15
 } __attribute__((packed));
 
-class ControllerDS4 : public api::ControllerBase {
+class Controller : public api::ControllerBase {
 public:
     enum : uint8_t {
         ROT_MAIN = 0,
@@ -129,7 +129,7 @@ public:
         GET_AUTH_STATUS,
         GET_AUTH_PAGE_SIZE,
     };
-    ControllerDS4(api::TransportBase *backend);
+    Controller(api::Transport *backend);
     void begin() override;
     void update();
     bool sendReport() override;
@@ -140,7 +140,7 @@ public:
     bool setAxis16(uint8_t code, uint16_t value) override;
 
     bool setKeyUniversal(api::Key code, bool action) override;
-    bool setDpadUniversal(api::Dpad8Pos value) override;
+    bool setDpadUniversal(api::Dpad value) override;
     bool setStick(api::Stick index, uint8_t x, uint8_t y) override;
     bool setTrigger(api::Key code, uint8_t value) override;
 
@@ -165,10 +165,10 @@ private:
     bool sendReport_(bool blocking);
 };
 
-template <api::Dpad8Pos NS=api::Dpad8Pos::C, api::Dpad8Pos WE=api::Dpad8Pos::C>
-class ControllerDS4SOCD : public ControllerDS4, public api::SOCDBehavior<ControllerDS4SOCD<NS, WE>, NS, WE>, public api::UnoJoyAPI<ControllerDS4SOCD<NS, WE>> {
+template <api::Dpad NS=api::Dpad::C, api::Dpad WE=api::Dpad::C>
+class ControllerSOCD : public Controller, public api::SOCDBehavior<ControllerSOCD<NS, WE>, NS, WE>, public api::UnoJoyAPI<ControllerSOCD<NS, WE>> {
 public:
-    ControllerDS4SOCD(api::TransportBase *backend) : ControllerDS4(backend) {};
+    ControllerSOCD(api::Transport *backend) : Controller(backend) {};
 };
 
 } // namespace ds4

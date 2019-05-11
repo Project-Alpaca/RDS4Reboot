@@ -6,6 +6,7 @@
  */
 
 #include "ControllerDS4.hpp"
+
 #include "utils.hpp"
 
 #ifdef RDS4_LINUX
@@ -16,25 +17,25 @@
 namespace rds4 {
 namespace ds4 {
 
-const uint8_t ControllerDS4::keyLookup[static_cast<uint8_t>(api::Key::_COUNT)] = {
-    ControllerDS4::KEY_CIR,
-    ControllerDS4::KEY_XRO,
-    ControllerDS4::KEY_TRI,
-    ControllerDS4::KEY_SQR,
-    ControllerDS4::KEY_L1,
-    ControllerDS4::KEY_R1,
-    ControllerDS4::KEY_L2,
-    ControllerDS4::KEY_R2,
-    ControllerDS4::KEY_L3,
-    ControllerDS4::KEY_R3,
-    ControllerDS4::KEY_PS,
-    ControllerDS4::KEY_SHR,
-    ControllerDS4::KEY_OPT,
+const uint8_t Controller::keyLookup[static_cast<uint8_t>(api::Key::_COUNT)] = {
+    Controller::KEY_CIR,
+    Controller::KEY_XRO,
+    Controller::KEY_TRI,
+    Controller::KEY_SQR,
+    Controller::KEY_L1,
+    Controller::KEY_R1,
+    Controller::KEY_L2,
+    Controller::KEY_R2,
+    Controller::KEY_L3,
+    Controller::KEY_R3,
+    Controller::KEY_PS,
+    Controller::KEY_SHR,
+    Controller::KEY_OPT,
 };
 
-ControllerDS4::ControllerDS4(api::TransportBase *backend) : api::ControllerBase(backend), currentTouchSeq(0) { /* pass */ };
+Controller::Controller(api::Transport *backend) : api::ControllerBase(backend), currentTouchSeq(0) { /* pass */ };
 
-void ControllerDS4::begin() {
+void Controller::begin() {
     this->backend->begin();
     memset(&(this->report), 0, sizeof(this->report));
     this->report.type = 0x01;
@@ -49,18 +50,18 @@ void ControllerDS4::begin() {
     this->report.battery = 0xff;
 }
 
-void ControllerDS4::update() {
+void Controller::update() {
     if (this->backend->available()) {
         // TODO
         this->backend->recv(&(this->feedback), sizeof(this->feedback));
     }
 }
 
-bool ControllerDS4::hasValidFeedback() {
+bool Controller::hasValidFeedback() {
     return this->feedback.type == 0x05;
 }
 
-inline bool ControllerDS4::sendReport_(bool blocking) {
+inline bool Controller::sendReport_(bool blocking) {
     // https://www.psdevwiki.com/ps4/DS4-BT#0x11
     this->report.sensor_timestamp = ((millis() * 150) & 0xffff);
     uint8_t actual;
@@ -88,19 +89,19 @@ inline bool ControllerDS4::sendReport_(bool blocking) {
     return false;
 }
 
-bool ControllerDS4::sendReport() {
+bool Controller::sendReport() {
     return this->sendReport_(false);
 }
 
-bool ControllerDS4::sendReportBlocking() {
+bool Controller::sendReportBlocking() {
     return this->sendReport_(true);
 }
 
-inline void ControllerDS4::incReportCtr() {
+inline void Controller::incReportCtr() {
     this->report.buttons[2] += 4;
 }
 
-bool ControllerDS4::setRotary8Pos(uint8_t code, api::Rotary8Pos value) {
+bool Controller::setRotary8Pos(uint8_t code, api::Rotary8Pos value) {
     if (code != 0) {
         return false;
     }
@@ -109,8 +110,8 @@ bool ControllerDS4::setRotary8Pos(uint8_t code, api::Rotary8Pos value) {
     return true;
 }
 
-bool ControllerDS4::setKey(uint8_t code, bool action) {
-    if (code < ControllerDS4::KEY_SQR or code > ControllerDS4::KEY_TP) {
+bool Controller::setKey(uint8_t code, bool action) {
+    if (code < Controller::KEY_SQR or code > Controller::KEY_TP) {
         // key does not exist
         return false;
     }
@@ -129,10 +130,10 @@ bool ControllerDS4::setKey(uint8_t code, bool action) {
     return true;
 }
 
-bool ControllerDS4::setAxis(uint8_t code, uint8_t value) {
-    if (code >= ControllerDS4::AXIS_LX and code <= ControllerDS4::AXIS_RY) {
+bool Controller::setAxis(uint8_t code, uint8_t value) {
+    if (code >= Controller::AXIS_LX and code <= Controller::AXIS_RY) {
         this->report.sticks[code] = value;
-    } else if (code >= ControllerDS4::AXIS_L2 and code <= ControllerDS4::AXIS_R2) {
+    } else if (code >= Controller::AXIS_L2 and code <= Controller::AXIS_R2) {
         this->report.triggers[code-4] = value;
     } else {
         return false;
@@ -140,23 +141,23 @@ bool ControllerDS4::setAxis(uint8_t code, uint8_t value) {
     return true;
 }
 
-bool ControllerDS4::setAxis16(uint8_t code, uint16_t value) {
+bool Controller::setAxis16(uint8_t code, uint16_t value) {
     // TODO accel and gyro support
     // No 16-bit axes at the moment, stub this
     return false;
 }
 
-bool ControllerDS4::setKeyUniversal(api::Key code, bool action) {
+bool Controller::setKeyUniversal(api::Key code, bool action) {
     if (code == api::Key::_COUNT) {
         return false;
     }
     auto ds4Code = this->keyLookup[static_cast<uint8_t>(code)];
     switch (code) {
         case api::Key::LTrigger:
-            this->setAxis(ControllerDS4::AXIS_L2, action ? 0xff : 0x0);
+            this->setAxis(Controller::AXIS_L2, action ? 0xff : 0x0);
             break;
         case api::Key::RTrigger:
-            this->setAxis(ControllerDS4::AXIS_R2, action ? 0xff : 0x0);
+            this->setAxis(Controller::AXIS_R2, action ? 0xff : 0x0);
             break;
         default:
             break;
@@ -165,32 +166,32 @@ bool ControllerDS4::setKeyUniversal(api::Key code, bool action) {
     return true;
 }
 
-bool ControllerDS4::setDpadUniversal(api::Dpad8Pos value) {
+bool Controller::setDpadUniversal(api::Dpad value) {
     return this->setDpad(0, value);
 }
 
-bool ControllerDS4::setStick(api::Stick index, uint8_t x, uint8_t y) {
+bool Controller::setStick(api::Stick index, uint8_t x, uint8_t y) {
     switch (index) {
         case api::Stick::L:
-            this->setAxis(ControllerDS4::AXIS_LX, x);
-            this->setAxis(ControllerDS4::AXIS_LY, y);
+            this->setAxis(Controller::AXIS_LX, x);
+            this->setAxis(Controller::AXIS_LY, y);
             break;
         case api::Stick::R:
-            this->setAxis(ControllerDS4::AXIS_RX, x);
-            this->setAxis(ControllerDS4::AXIS_RY, y);
+            this->setAxis(Controller::AXIS_RX, x);
+            this->setAxis(Controller::AXIS_RY, y);
             break;
     }
     return true;
 }
 
-bool ControllerDS4::setTrigger(api::Key code, uint8_t value) {
+bool Controller::setTrigger(api::Key code, uint8_t value) {
     auto ds4Code = this->keyLookup[static_cast<uint8_t>(code)];
     switch (code) {
         case api::Key::LTrigger:
-            this->setAxis(ControllerDS4::AXIS_L2, value);
+            this->setAxis(Controller::AXIS_L2, value);
             break;
         case api::Key::RTrigger:
-            this->setAxis(ControllerDS4::AXIS_R2, value);
+            this->setAxis(Controller::AXIS_R2, value);
             break;
         default:
             break;
@@ -199,7 +200,7 @@ bool ControllerDS4::setTrigger(api::Key code, uint8_t value) {
     return true;
 }
 
-bool ControllerDS4::setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y) {
+bool Controller::setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y) {
     // TODO Bluetooth has different event buffer size
     if (slot >= (sizeof(this->report.frames) / sizeof(TouchFrame)) || pos > 1) {
         return false;
@@ -209,11 +210,11 @@ bool ControllerDS4::setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t
     return true;
 }
 
-bool ControllerDS4::setTouchEvent(uint8_t pos, bool pressed, uint16_t x, uint16_t y) {
+bool Controller::setTouchEvent(uint8_t pos, bool pressed, uint16_t x, uint16_t y) {
     return this->setTouchpad(this->report.tp_available_frame, pos, pressed, this->currentTouchSeq, x, y);
 }
 
-bool ControllerDS4::finalizeTouchEvent() {
+bool Controller::finalizeTouchEvent() {
     if (this->report.tp_available_frame < 3) {
         this->report.tp_available_frame++;
         this->currentTouchSeq++;
@@ -223,7 +224,7 @@ bool ControllerDS4::finalizeTouchEvent() {
     }
 }
 
-void ControllerDS4::clearTouchEvents() {
+void Controller::clearTouchEvents() {
     this->report.tp_available_frame = 0;
     for (uint8_t i=0; i<3; i++) {
         this->report.frames[i].seq = 0;
@@ -232,23 +233,23 @@ void ControllerDS4::clearTouchEvents() {
     }
 }
 
-uint8_t ControllerDS4::getRumbleIntensityRight() {
+uint8_t Controller::getRumbleIntensityRight() {
     return this->feedback.rumble_right;
 }
 
-uint8_t ControllerDS4::getRumbleIntensityLeft() {
+uint8_t Controller::getRumbleIntensityLeft() {
     return this->feedback.rumble_left;
 }
 
-uint8_t ControllerDS4::getLEDDelayOn() {
+uint8_t Controller::getLEDDelayOn() {
     return this->feedback.led_flash_on;
 }
 
-uint8_t ControllerDS4::getLEDDelayOff() {
+uint8_t Controller::getLEDDelayOff() {
     return this->feedback.led_flash_off;
 }
 
-uint32_t ControllerDS4::getLEDRGB() {
+uint32_t Controller::getLEDRGB() {
     // LED data is in the format of 0x00RRGGBB, same as the format Adafruit_NeoPixel accepts.
     return (this->feedback.led_color[0] << 16 | this->feedback.led_color[1] << 8 | this->feedback.led_color[2]);
 }

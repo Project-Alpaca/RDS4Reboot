@@ -9,10 +9,10 @@
 
 #include "platform.hpp"
 #include "internals.hpp"
-#include "ControllerDS4.hpp"
 #include "utils.hpp"
 
 #include "usb_ds4stub.h"
+#include "ControllerDS4.hpp"
 
 #ifdef RDS4_LINUX
 #include <cstdio>
@@ -36,10 +36,10 @@ enum class DS4AuthState : uint8_t {
   * authentication requests.
   */
 template <class TR, bool strictCRC=false>
-class AuthenticationHandlerDS4 : public api::AuthenticationHandlerBase {
+class AuthenticationHandler : public api::AuthenticationHandler {
 public:
     typedef void (*StateChangeCallback)(void);
-    AuthenticationHandlerDS4(api::AuthenticatorBase *auth) : AuthenticationHandlerBase(auth),
+    AuthenticationHandler(api::Authenticator *auth) : AuthenticationHandler(auth),
                                                         state(DS4AuthState::IDLE),
                                                         page(-1),
                                                         seq(0),
@@ -70,7 +70,7 @@ protected:
 };
 
 template <class TR, bool strictCRC>
-void AuthenticationHandlerDS4<TR, strictCRC>::update() {
+void AuthenticationHandler<TR, strictCRC>::update() {
     auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
     if (this->auth->available()) {
         switch (this->state) {
@@ -119,7 +119,7 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                         // buffer the first response packet
                         auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                         RDS4_DBG_PRINTLN("ok");
-                        pkt->type = ControllerDS4::GET_RESPONSE;
+                        pkt->type = Controller::GET_RESPONSE;
                         pkt->seq = this->seq;
                         pkt->page = 0;
                         pkt->crc32 = strictCRC ? utils::crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
@@ -158,7 +158,7 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                 auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                 RDS4_DBG_PRINTLN("next");
                 this->page++;
-                pkt->type = ControllerDS4::GET_RESPONSE;
+                pkt->type = Controller::GET_RESPONSE;
                 pkt->seq = this->seq;
                 pkt->page = this->page;
                 pkt->crc32 = strictCRC ? utils::crc32(this->scratchPad, sizeof(*pkt) - sizeof(pkt->crc32)) : 0;
@@ -180,11 +180,11 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
 }
 
 template <class TR, bool strictCRC>
-bool AuthenticationHandlerDS4<TR, strictCRC>::onSetReport(uint16_t value, uint16_t index, uint16_t length) {
+bool AuthenticationHandler<TR, strictCRC>::onSetReport(uint16_t value, uint16_t index, uint16_t length) {
     TR *tr = static_cast<TR *>(this);
     if ((value >> 8) == 0x03) {
         switch (value & 0xff) {
-            case ControllerDS4::SET_CHALLENGE: {
+            case Controller::SET_CHALLENGE: {
                 auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                 RDS4_DBG_PRINTLN("AuthenticationHandlerDS4: SET_CHALLENGE");
                 if (tr->check(pkt, sizeof(*pkt)) != sizeof(*pkt)) {
@@ -192,7 +192,7 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onSetReport(uint16_t value, uint16
                     return false;
                 }
                 // sanity check
-                if (pkt->type != ControllerDS4::SET_CHALLENGE) {
+                if (pkt->type != Controller::SET_CHALLENGE) {
                     RDS4_DBG_PRINT("wrong magic ");
                     RDS4_DBG_PHEX(pkt->type);
                     RDS4_DBG_PRINT("\n");
@@ -233,11 +233,11 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onSetReport(uint16_t value, uint16
 }
 
 template <class TR, bool strictCRC>
-bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16_t index, uint16_t length) {
+bool AuthenticationHandler<TR, strictCRC>::onGetReport(uint16_t value, uint16_t index, uint16_t length) {
     TR *tr = static_cast<TR *>(this);
     if ((value >> 8) == 0x03) {
         switch (value & 0xff) {
-            case ControllerDS4::GET_RESPONSE:
+            case Controller::GET_RESPONSE:
                 // Will be processed in update()
                 if (this->state == DS4AuthState::RESP_BUFFERED) {
                     this->state = DS4AuthState::RESP_UNLOADED;
@@ -248,10 +248,10 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                 }
                 tr->reply(&scratchPad, sizeof(AuthReport));
                 break;
-            case ControllerDS4::GET_AUTH_STATUS: {
+            case Controller::GET_AUTH_STATUS: {
                 // Use a separate buffer here to make sure we don't overwrite buffered response.
                 AuthStatusReport pkt = {0};
-                pkt.type = ControllerDS4::GET_AUTH_STATUS;
+                pkt.type = Controller::GET_AUTH_STATUS;
                 pkt.seq = this->seq;
                 pkt.crc32 = strictCRC ? utils::crc32(&pkt, sizeof(pkt) - sizeof(pkt.crc32)) : 0;
                 switch (this->state) {
@@ -279,10 +279,10 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                 tr->reply(&pkt, sizeof(pkt));
                 break;
             }
-            case ControllerDS4::GET_AUTH_PAGE_SIZE: {
+            case Controller::GET_AUTH_PAGE_SIZE: {
                 auto *ps = reinterpret_cast<AuthPageSizeReport *>(&(this->scratchPad));
                 memset(ps, 0, sizeof(*ps));
-                ps->type = ControllerDS4::GET_AUTH_PAGE_SIZE;
+                ps->type = Controller::GET_AUTH_PAGE_SIZE;
                 ps->size_challenge = this->auth->getChallengePageSize();
                 ps->size_response = this->auth->getResponsePageSize();
                 tr->reply(ps, sizeof(*ps));
@@ -339,16 +339,16 @@ typedef struct {
 } usb_setup_pkt_t;
 
 /** Tansport backend for teensy 3.x/LC boards. Requires patched teensyduino core library */
-class TransportDS4Teensy;
-class TransportDS4Teensy : public api::TransportBase, public AuthenticationHandlerDS4<TransportDS4Teensy>, public FeatureConfigurator<TransportDS4Teensy> {
+class TransportTeensy;
+class TransportTeensy : public api::Transport, public AuthenticationHandler<TransportTeensy>, public FeatureConfigurator<TransportTeensy> {
 public:
-    TransportDS4Teensy(api::AuthenticatorBase *auth) : AuthenticationHandlerDS4(auth) {
-        TransportDS4Teensy::inst = this;
-        usb_ds4stub_on_get_report = &(TransportDS4Teensy::frCallbackGet);
-        usb_ds4stub_on_set_report = &(TransportDS4Teensy::frCallbackSet);
+    TransportTeensy(api::Authenticator *auth) : AuthenticationHandler(auth) {
+        TransportTeensy::inst = this;
+        usb_ds4stub_on_get_report = &(TransportTeensy::frCallbackGet);
+        usb_ds4stub_on_set_report = &(TransportTeensy::frCallbackSet);
     }
     void begin() override {
-        AuthenticationHandlerDS4<TransportDS4Teensy>::begin();
+        AuthenticationHandler<TransportTeensy>::begin();
     }
     bool available() override;
     uint8_t send(const void *buf, uint8_t len) override;
@@ -356,8 +356,8 @@ public:
     uint8_t recv(void *buf, uint8_t len) override;
 
 protected:
-    friend class AuthenticationHandlerDS4<TransportDS4Teensy>;
-    friend class FeatureConfigurator<TransportDS4Teensy>;
+    friend class AuthenticationHandler<TransportTeensy>;
+    friend class FeatureConfigurator<TransportTeensy>;
     // Copy data to DMA buffer
     uint8_t check(void *buf, uint8_t len) override;
     // Unload data from DMA buffer
@@ -370,7 +370,7 @@ protected:
     static uint8_t *frBuffer;
     static uint32_t *frSize;
     // Since this class can only be instantiated once, this should be fine.
-    static TransportDS4Teensy *inst;
+    static TransportTeensy *inst;
 };
 
 #elif defined(RDS4_ARDUINO) && defined(USBCON)
@@ -398,9 +398,9 @@ const usb_eptype_t EP_TYPE_INTERRUPT_OUT = USB_ENDPOINT_TYPE_INTERRUPT | USB_END
 #endif
 
 /** Tansport backend for Arduino PluggableUSB-compatible boards. */
-class TransportDS4PUSB : public PluggableUSBModule, public TransportBase, public AuthenticationHandlerDS4<TransportDS4PUSB> {
+class TransportDS4PUSB : public PluggableUSBModule, public Transport, public AuthenticationHandler<TransportDS4PUSB> {
 public:
-    TransportDS4PUSB(AuthenticatorBase *auth) : AuthenticationHandlerDS4(auth),
+    TransportDS4PUSB(Authenticator *auth) : AuthenticationHandler(auth),
                                                 PluggableUSBModule(2, 1, epType) {
         this->epType = {EP_TYPE_INTERRUPT_IN, EP_TYPE_INTERRUPT_OUT};
         PluggableUSB().plug(this);
@@ -433,14 +433,14 @@ private:
 // This is outdated, update soon
 #ifdef RDS4_LINUX
 
-class TransportNull : public TransportBase {
+class TransportNull : public Transport {
     bool sendAvailable() { return false; }
     bool recvAvailable() { return false; }
     size_t sendReport(const void *buf, size_t len) { return 0; }
     size_t recvReport(void *buf, size_t len) { return 0; }
 };
 
-class TransportStdio : public TransportBase {
+class TransportStdio : public Transport {
     bool sendAvailable() { return true; }
     bool recvAvailable() { return false; }
     size_t sendReport(const void *buf, size_t len) {

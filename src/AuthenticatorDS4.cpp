@@ -31,33 +31,33 @@ uint8_t PS4USB2::OnInitSuccessful() {
     return 0;
 }
 
-void PS4USB2::registerAuthenticator(AuthenticatorDS4USBH *auth) {
+void PS4USB2::registerAuthenticator(AuthenticatorUSBH *auth) {
     this->auth = auth;
 }
 
-AuthenticatorDS4USBH::AuthenticatorDS4USBH(PS4USB2 *donor) : donor(donor), statusOverrideEnabled(false), statusOverrideTransactionStartTime(0), statusOverrideInTransaction(false) {
+AuthenticatorUSBH::AuthenticatorUSBH(PS4USB2 *donor) : donor(donor), statusOverrideEnabled(false), statusOverrideTransactionStartTime(0), statusOverrideInTransaction(false) {
     donor->registerAuthenticator(this);
 }
 
-bool AuthenticatorDS4USBH::available() {
+bool AuthenticatorUSBH::available() {
     auto state = this->donor->connected();
     return state;
 }
 
-bool AuthenticatorDS4USBH::needsReset() {
+bool AuthenticatorUSBH::needsReset() {
     return this->donor->isLicensed();
 }
 
-bool AuthenticatorDS4USBH::reset() {
+bool AuthenticatorUSBH::reset() {
     return this->fitPageSize();
 }
 
-bool AuthenticatorDS4USBH::fitPageSize() {
+bool AuthenticatorUSBH::fitPageSize() {
     if (this->donor->isLicensed()) {
-        if (this->donor->GetReport(0, 0, 0x03, ControllerDS4::GET_AUTH_PAGE_SIZE, 8, this->scratchPad) == 0) {
+        if (this->donor->GetReport(0, 0, 0x03, Controller::GET_AUTH_PAGE_SIZE, 8, this->scratchPad) == 0) {
             auto pgsize = (AuthPageSizeReport *) &(this->scratchPad);
             // basic sanity check
-            if (pgsize->size_challenge > AuthenticatorDS4USBH::PAYLOAD_MAX or pgsize->size_response > AuthenticatorDS4USBH::PAYLOAD_MAX) {
+            if (pgsize->size_challenge > AuthenticatorUSBH::PAYLOAD_MAX or pgsize->size_response > AuthenticatorUSBH::PAYLOAD_MAX) {
                 return false;
             }
             RDS4_DBG_PRINT("AuthenticatorDS4USBH: fit: nonce=");
@@ -74,13 +74,13 @@ bool AuthenticatorDS4USBH::fitPageSize() {
         }
     } else {
         RDS4_DBG_PRINT("AuthenticatorDS4USBH: fit: is ds4");
-        this->challengePageSize = AuthenticatorDS4USBH::PAYLOAD_MAX;
-        this->responsePageSize = AuthenticatorDS4USBH::PAYLOAD_MAX;
+        this->challengePageSize = AuthenticatorUSBH::PAYLOAD_MAX;
+        this->responsePageSize = AuthenticatorUSBH::PAYLOAD_MAX;
         return true;
     }
 }
 
-size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t len) {
+size_t AuthenticatorUSBH::writeChallengePage(uint8_t page, void *buf, size_t len) {
     auto authbuf = reinterpret_cast<AuthReport *>(&(this->scratchPad));
     auto expected = this->getActualChallengePageSize(page);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: writing page");
@@ -89,7 +89,7 @@ size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t 
         RDS4_DBG_PRINTLN("buf too small");
     }
     
-    authbuf->type = ControllerDS4::SET_CHALLENGE;
+    authbuf->type = Controller::SET_CHALLENGE;
     // seq=0 seems to work on all controllers I tested. Leave this as-is for now.
     authbuf->seq = 1;
     authbuf->page = page;
@@ -97,7 +97,7 @@ size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t 
     memcpy(&authbuf->data, buf, expected);
     // CRC32 is a must-have for official controller, not sure about licensed ones.
     authbuf->crc32 = utils::crc32(this->scratchPad, sizeof(*authbuf) - sizeof(authbuf->crc32));
-    if (this->donor->SetReport(0, 0, 0x03, ControllerDS4::SET_CHALLENGE, sizeof(*authbuf), this->scratchPad) != 0) {
+    if (this->donor->SetReport(0, 0, 0x03, Controller::SET_CHALLENGE, sizeof(*authbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm error");
         return 0;
     }
@@ -112,7 +112,7 @@ size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t 
     return expected;
 }
 
-size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t len) {
+size_t AuthenticatorUSBH::readResponsePage(uint8_t page, void *buf, size_t len) {
     auto authbuf = (AuthReport *) &(this->scratchPad);
     auto expected = this->getActualResponsePageSize(page);
     // Insufficient space for target buffer
@@ -121,7 +121,7 @@ size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t le
         RDS4_DBG_PRINTLN("buf too small");
         return 0;
     }
-    if (this->donor->GetReport(0, 0, 0x03, ControllerDS4::GET_RESPONSE, sizeof(*authbuf), this->scratchPad) != 0) {
+    if (this->donor->GetReport(0, 0, 0x03, Controller::GET_RESPONSE, sizeof(*authbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm error");
         return 0;
     }
@@ -146,7 +146,7 @@ size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t le
     return expected;
 }
 
-api::AuthStatus AuthenticatorDS4USBH::getStatus() {
+api::AuthStatus AuthenticatorUSBH::getStatus() {
     auto rslbuf = (AuthStatusReport *) &(this->scratchPad);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: getting status");
     if (this->statusOverrideEnabled) {
@@ -161,7 +161,7 @@ api::AuthStatus AuthenticatorDS4USBH::getStatus() {
         }
     }
     memset(rslbuf, 0, sizeof(*rslbuf));
-    if (this->donor->GetReport(0, 0, 0x03, ControllerDS4::GET_AUTH_STATUS, sizeof(*rslbuf), this->scratchPad) != 0) {
+    if (this->donor->GetReport(0, 0, 0x03, Controller::GET_AUTH_STATUS, sizeof(*rslbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm err");
         return api::AuthStatus::COMM_ERR;
     }
@@ -187,17 +187,17 @@ api::AuthStatus AuthenticatorDS4USBH::getStatus() {
     }
 }
 
-uint8_t AuthenticatorDS4USBH::getActualChallengePageSize(uint8_t page) {
-    uint16_t remaining = AuthenticatorDS4USBH::CHALLENGE_SIZE - (uint16_t) this->challengePageSize * page;
+uint8_t AuthenticatorUSBH::getActualChallengePageSize(uint8_t page) {
+    uint16_t remaining = AuthenticatorUSBH::CHALLENGE_SIZE - (uint16_t) this->challengePageSize * page;
     return remaining > this->challengePageSize ? this->challengePageSize : (uint8_t) remaining;
 }
 
-uint8_t AuthenticatorDS4USBH::getActualResponsePageSize(uint8_t page) {
-    uint16_t remaining = AuthenticatorDS4USBH::RESPONSE_SIZE - (uint16_t) this->responsePageSize * page;
+uint8_t AuthenticatorUSBH::getActualResponsePageSize(uint8_t page) {
+    uint16_t remaining = AuthenticatorUSBH::RESPONSE_SIZE - (uint16_t) this->responsePageSize * page;
     return remaining > this->responsePageSize ? this->responsePageSize : (uint8_t) remaining;
 }
 
-void AuthenticatorDS4USBH::onStateChange() {
+void AuthenticatorUSBH::onStateChange() {
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: Hotplug detected, re-fitting buffer");
     this->fitPageSize();
     this->statusOverrideEnabled = this->donor->isQuirky();

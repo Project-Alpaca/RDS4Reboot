@@ -26,7 +26,7 @@
 namespace rds4 {
 namespace ds4 {
 
-class AuthenticatorDS4Null : public api::AuthenticatorBase {
+class AuthenticatorNull : public api::Authenticator {
     void begin() { this->fitPageSize(); }
     bool available() override { return true; }
     bool canFitPageSize() override { return true; }
@@ -47,7 +47,7 @@ class AuthenticatorDS4Null : public api::AuthenticatorBase {
 
 #ifdef RDS4_AUTH_USBH
 
-class AuthenticatorDS4USBH;
+class AuthenticatorUSBH;
 
 // TODO reading reports on licensed controllers don't work
 /** Modified PS4USB class that adds basic support for some licensed PS4 controllers. */
@@ -74,7 +74,7 @@ public:
     }
 
 protected:
-    friend class AuthenticatorDS4USBH;
+    friend class AuthenticatorUSBH;
     bool VIDPIDOK(uint16_t vid, uint16_t pid) override {
         return (( \
             vid == PS4_VID and ( \
@@ -93,18 +93,18 @@ protected:
     }
 
     uint8_t OnInitSuccessful() override;
-    void registerAuthenticator(AuthenticatorDS4USBH *auth);
+    void registerAuthenticator(AuthenticatorUSBH *auth);
 private:
-    AuthenticatorDS4USBH *auth;
+    AuthenticatorUSBH *auth;
 };
 
 /** DS4 authenticator that uses USB PS4 controllers as the backend via USB Host Shield 2.x library. */
-class AuthenticatorDS4USBH : public api::AuthenticatorBase {
+class AuthenticatorUSBH : public api::Authenticator {
 public:
     static const uint8_t PAYLOAD_MAX = 0x38;
     static const uint16_t CHALLENGE_SIZE = 0x100;
     static const uint16_t RESPONSE_SIZE = 0x410;
-    AuthenticatorDS4USBH(PS4USB2 *donor);
+    AuthenticatorUSBH(PS4USB2 *donor);
     bool available() override;
     bool canFitPageSize() override { return true; }
     bool canSetPageSize() override { return false; }
@@ -113,10 +113,10 @@ public:
     bool setChallengePageSize(uint8_t size) override { return false; }
     bool setResponsePageSize(uint8_t size) override { return false; }
     bool endOfChallenge(uint8_t page) override {
-        return ((static_cast<uint16_t>(page)+1) * this->getChallengePageSize()) >= AuthenticatorDS4USBH::CHALLENGE_SIZE;
+        return ((static_cast<uint16_t>(page)+1) * this->getChallengePageSize()) >= AuthenticatorUSBH::CHALLENGE_SIZE;
     }
     bool endOfResponse(uint8_t page) override {
-        return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) >= AuthenticatorDS4USBH::RESPONSE_SIZE;
+        return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) >= AuthenticatorUSBH::RESPONSE_SIZE;
     }
     bool reset() override;
     size_t writeChallengePage(uint8_t page, void *buf, size_t len) override;

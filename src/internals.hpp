@@ -26,7 +26,7 @@ namespace api {
  *  full DS4 report is way less than 255 bytes long (without audio). This may
  *  change in the future when demanded.
  */
-class TransportBase {
+class Transport {
 public:
     /** Start transport backend. Does nothing by default. */
     virtual void begin() { };
@@ -94,7 +94,7 @@ enum class AuthStatus : uint8_t {
     NO_TRANSACTION,
 };
 
-class AuthenticatorBase {
+class Authenticator {
 public:
     /** Start authenticator. Does nothing by default. */
     virtual void begin() { };
@@ -218,9 +218,9 @@ protected:
 /** Optional authentication feature for a Transport object. Should be a
   * mixin/wrapper (CRTP) of a specific implementation of Transport class.
   */
-class AuthenticationHandlerBase {
+class AuthenticationHandler {
 public:
-    AuthenticationHandlerBase(AuthenticatorBase *auth) {
+    AuthenticationHandler(Authenticator *auth) {
         this->auth = auth;
     }
     virtual void begin() = 0;
@@ -232,7 +232,7 @@ public:
 protected:
     virtual bool onGetReport(uint16_t value, uint16_t index, uint16_t length) = 0;
     virtual bool onSetReport(uint16_t value, uint16_t index, uint16_t length) = 0;
-    AuthenticatorBase *auth;
+    Authenticator *auth;
 }; // AuthenticationHandlerBase
 
 enum class Rotary8Pos : uint8_t {
@@ -257,11 +257,11 @@ enum class Stick : uint8_t {
     L = 0, R,
 };
 
-using Dpad8Pos = Rotary8Pos;
+using Dpad = Rotary8Pos;
 
 class ControllerBase {
 public:
-    ControllerBase(TransportBase *backend) {
+    ControllerBase(Transport *backend) {
         this->backend = backend;
     }
     /** Initialize the report buffer and transport back-end. */
@@ -304,7 +304,7 @@ public:
 
     // Universal APIs
     virtual bool setKeyUniversal(Key code, bool action) = 0;
-    virtual bool setDpadUniversal(Dpad8Pos value) = 0;
+    virtual bool setDpadUniversal(Dpad value) = 0;
     virtual bool setStick(Stick index, uint8_t x, uint8_t y) = 0;
     virtual bool setTrigger(Key code, uint8_t value) = 0;
 
@@ -316,7 +316,7 @@ public:
      *  @see Dpad8Pos
      *  @see setRotary8Pos()
      */
-    inline bool setDpad(uint8_t code, Dpad8Pos value) {
+    inline bool setDpad(uint8_t code, Dpad value) {
         return this->setRotary8Pos(code, value);
     }
     /** Set a key/push button to pressed state.
@@ -347,7 +347,7 @@ public:
     }
 
 protected:
-    TransportBase *backend;
+    Transport *backend;
 }; // ControllerBase
 
 /** A simple SOCD cleaner mixin. Can be attached to a ControllerBase-compatible
@@ -363,7 +363,7 @@ protected:
  *  will be treated as neutral and the cleaner removes presses of both
  *  directions.
  */
-template <class C, Dpad8Pos NS, Dpad8Pos WE>
+template <class C, Dpad NS, Dpad WE>
 class SOCDBehavior {
 public:
     /** Do SOCD cleaning and set state for a D-pad.
@@ -384,18 +384,18 @@ public:
         return cobj->setDpadUniversal(this->doCleaning(n, e, s, w));
     }
 private:
-    Dpad8Pos doCleaning(bool n, bool e, bool s, bool w) {
-        auto pos = Dpad8Pos::C;
+    Dpad doCleaning(bool n, bool e, bool s, bool w) {
+        auto pos = Dpad::C;
         // Clean the input
         if (n and s) {
             switch (NS) {
-                case Dpad8Pos::N:
+                case Dpad::N:
                     s = false;
                     break;
-                case Dpad8Pos::S:
+                case Dpad::S:
                     n = false;
                     break;
-                case Dpad8Pos::C:
+                case Dpad::C:
                 default:
                     s = false;
                     n = false;
@@ -403,13 +403,13 @@ private:
         }
         if (w and e) {
             switch (WE) {
-                case Dpad8Pos::W:
+                case Dpad::W:
                     e = false;
                     break;
-                case Dpad8Pos::E:
+                case Dpad::E:
                     w = false;
                     break;
-                case Dpad8Pos::C:
+                case Dpad::C:
                 default:
                     e = false;
                     w = false;
@@ -419,34 +419,34 @@ private:
         if (n) {
             // NE
             if (e) {
-                pos = Dpad8Pos::NE;
+                pos = Dpad::NE;
             // NW
             } else if (w) {
-                pos = Dpad8Pos::NW;
+                pos = Dpad::NW;
             // N only
             } else {
-                pos = Dpad8Pos::N;
+                pos = Dpad::N;
             }
         } else if (s) {
             // SE
             if (e) {
-                pos = Dpad8Pos::SE;
+                pos = Dpad::SE;
             // SW
             } else if (w) {
-                pos = Dpad8Pos::SW;
+                pos = Dpad::SW;
             // S only
             } else {
-                pos = Dpad8Pos::S;
+                pos = Dpad::S;
             }
         // W only
         } else if (w) {
-            pos = Dpad8Pos::W;
+            pos = Dpad::W;
         // E only
         } else if (e) {
-            pos = Dpad8Pos::E;
+            pos = Dpad::E;
         // Centered/neutral
         } else {
-            pos = Dpad8Pos::C;
+            pos = Dpad::C;
         }
         return pos;
     }
