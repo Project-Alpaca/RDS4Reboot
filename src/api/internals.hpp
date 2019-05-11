@@ -259,9 +259,9 @@ enum class Stick : uint8_t {
 
 using Dpad = Rotary8Pos;
 
-class ControllerBase {
+class Controller {
 public:
-    ControllerBase(Transport *backend) {
+    Controller(Transport *backend) {
         this->backend = backend;
     }
     /** Initialize the report buffer and transport back-end. */

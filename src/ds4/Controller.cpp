@@ -33,7 +33,7 @@ const uint8_t Controller::keyLookup[static_cast<uint8_t>(api::Key::_COUNT)] = {
     Controller::KEY_OPT,
 };
 
-Controller::Controller(api::Transport *backend) : api::ControllerBase(backend), currentTouchSeq(0) { /* pass */ };
+Controller::Controller(api::Transport *backend) : api::Controller(backend), currentTouchSeq(0) { /* pass */ };
 
 void Controller::begin() {
     this->backend->begin();

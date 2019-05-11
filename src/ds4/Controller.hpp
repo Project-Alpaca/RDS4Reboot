@@ -92,7 +92,7 @@ struct AuthStatusReport {
     uint32_t crc32; // 12-15
 } __attribute__((packed));
 
-class Controller : public api::ControllerBase {
+class Controller : public api::Controller {
 public:
     enum : uint8_t {
         ROT_MAIN = 0,
