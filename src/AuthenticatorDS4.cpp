@@ -55,7 +55,7 @@ bool AuthenticatorDS4USBH::reset() {
 bool AuthenticatorDS4USBH::fitPageSize() {
     if (this->donor->isLicensed()) {
         if (this->donor->GetReport(0, 0, 0x03, ControllerDS4::GET_AUTH_PAGE_SIZE, 8, this->scratchPad) == 0) {
-            auto pgsize = (ds4_auth_page_size_t *) &(this->scratchPad);
+            auto pgsize = (AuthPageSizeReport *) &(this->scratchPad);
             // basic sanity check
             if (pgsize->size_challenge > AuthenticatorDS4USBH::PAYLOAD_MAX or pgsize->size_response > AuthenticatorDS4USBH::PAYLOAD_MAX) {
                 return false;
@@ -81,7 +81,7 @@ bool AuthenticatorDS4USBH::fitPageSize() {
 }
 
 size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t len) {
-    auto authbuf = reinterpret_cast<ds4_auth_t *>(&(this->scratchPad));
+    auto authbuf = reinterpret_cast<AuthReport *>(&(this->scratchPad));
     auto expected = this->getActualChallengePageSize(page);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: writing page");
     // Insufficient data
@@ -113,7 +113,7 @@ size_t AuthenticatorDS4USBH::writeChallengePage(uint8_t page, void *buf, size_t 
 }
 
 size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t len) {
-    auto authbuf = (ds4_auth_t *) &(this->scratchPad);
+    auto authbuf = (AuthReport *) &(this->scratchPad);
     auto expected = this->getActualResponsePageSize(page);
     // Insufficient space for target buffer
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: reading page");
@@ -147,7 +147,7 @@ size_t AuthenticatorDS4USBH::readResponsePage(uint8_t page, void *buf, size_t le
 }
 
 api::AuthStatus AuthenticatorDS4USBH::getStatus() {
-    auto rslbuf = (ds4_auth_status_t *) &(this->scratchPad);
+    auto rslbuf = (AuthStatusReport *) &(this->scratchPad);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: getting status");
     if (this->statusOverrideEnabled) {
         RDS4_DBG_PRINTLN("gh hack enabled");

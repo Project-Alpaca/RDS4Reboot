@@ -71,7 +71,7 @@ protected:
 
 template <class TR, bool strictCRC>
 void AuthenticationHandlerDS4<TR, strictCRC>::update() {
-    auto *pkt = reinterpret_cast<ds4_auth_t *>(&(this->scratchPad));
+    auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
     if (this->auth->available()) {
         switch (this->state) {
             // Got nonce (challenge) from host
@@ -117,7 +117,7 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                     // Authenticator is ready to answer the challenge.
                     case api::AuthStatus::OK: {
                         // buffer the first response packet
-                        auto *pkt = reinterpret_cast<ds4_auth_t *>(&(this->scratchPad));
+                        auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                         RDS4_DBG_PRINTLN("ok");
                         pkt->type = ControllerDS4::GET_RESPONSE;
                         pkt->seq = this->seq;
@@ -155,7 +155,7 @@ void AuthenticationHandlerDS4<TR, strictCRC>::update() {
                     this->page = -1;
                     break;
                 }
-                auto *pkt = reinterpret_cast<ds4_auth_t *>(&(this->scratchPad));
+                auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                 RDS4_DBG_PRINTLN("next");
                 this->page++;
                 pkt->type = ControllerDS4::GET_RESPONSE;
@@ -185,7 +185,7 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onSetReport(uint16_t value, uint16
     if ((value >> 8) == 0x03) {
         switch (value & 0xff) {
             case ControllerDS4::SET_CHALLENGE: {
-                auto *pkt = reinterpret_cast<ds4_auth_t *>(&(this->scratchPad));
+                auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                 RDS4_DBG_PRINTLN("AuthenticationHandlerDS4: SET_CHALLENGE");
                 if (tr->check(pkt, sizeof(*pkt)) != sizeof(*pkt)) {
                     RDS4_DBG_PRINTLN("wrong size");
@@ -246,11 +246,11 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                     // TODO do we need to clean the buffer?
                     this->state = DS4AuthState::ERROR;
                 }
-                tr->reply(&scratchPad, sizeof(ds4_auth_t));
+                tr->reply(&scratchPad, sizeof(AuthReport));
                 break;
             case ControllerDS4::GET_AUTH_STATUS: {
                 // Use a separate buffer here to make sure we don't overwrite buffered response.
-                ds4_auth_status_t pkt = {0};
+                AuthStatusReport pkt = {0};
                 pkt.type = ControllerDS4::GET_AUTH_STATUS;
                 pkt.seq = this->seq;
                 pkt.crc32 = strictCRC ? utils::crc32(&pkt, sizeof(pkt) - sizeof(pkt.crc32)) : 0;
@@ -280,7 +280,7 @@ bool AuthenticationHandlerDS4<TR, strictCRC>::onGetReport(uint16_t value, uint16
                 break;
             }
             case ControllerDS4::GET_AUTH_PAGE_SIZE: {
-                auto *ps = reinterpret_cast<ds4_auth_page_size_t *>(&(this->scratchPad));
+                auto *ps = reinterpret_cast<AuthPageSizeReport *>(&(this->scratchPad));
                 memset(ps, 0, sizeof(*ps));
                 ps->type = ControllerDS4::GET_AUTH_PAGE_SIZE;
                 ps->size_challenge = this->auth->getChallengePageSize();

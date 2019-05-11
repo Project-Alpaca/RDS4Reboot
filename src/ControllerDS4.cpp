@@ -201,7 +201,7 @@ bool ControllerDS4::setTrigger(api::Key code, uint8_t value) {
 
 bool ControllerDS4::setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y) {
     // TODO Bluetooth has different event buffer size
-    if (slot >= (sizeof(this->report.frames) / sizeof(ds4_touch_frame_t)) || pos > 1) {
+    if (slot >= (sizeof(this->report.frames) / sizeof(TouchFrame)) || pos > 1) {
         return false;
     }
     this->report.frames[slot].pos[pos] = ((y & 0xfff) << 20) | ((x & 0xfff) << 8) | ((!pressed) << 7) | (seq & 0x7f);

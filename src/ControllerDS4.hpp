@@ -14,12 +14,12 @@
 namespace rds4 {
 namespace ds4 {
 
-typedef struct {
+struct TouchFrame {
     uint8_t seq; // 34
     uint32_t pos[2]; // 35-42
-} __attribute__((packed)) ds4_touch_frame_t;
+} __attribute__((packed));
 
-typedef struct {
+struct InputReport {
     uint8_t type; // 0
     union {
         struct {
@@ -51,11 +51,11 @@ typedef struct {
     uint8_t state_ext; // 30
     uint16_t u31; // 31-32
     uint8_t tp_available_frame; // 33
-    ds4_touch_frame_t frames[3]; // 34-60
+    TouchFrame frames[3]; // 34-60
     uint8_t padding[3]; // 61-62 (63?)
-} __attribute__((packed)) ds4_report_t;
+} __attribute__((packed));
 
-typedef struct {
+struct FeedbackReport {
     uint8_t type; // 0
     uint8_t flags; // 1
     uint8_t padding1[2]; // 2-3
@@ -65,32 +65,32 @@ typedef struct {
     uint8_t led_flash_on; // 9
     uint8_t led_flash_off; // 10
     uint8_t padding[21]; // 11-31
-} __attribute__((packed)) ds4_feedback_t;
+} __attribute__((packed));
 
-typedef struct {
+struct AuthPageSizeReport {
     uint8_t type;
     uint8_t u1;
     uint8_t size_challenge;
     uint8_t size_response;
     uint8_t u4[4]; // crc32?
-} __attribute__((packed)) ds4_auth_page_size_t;
+} __attribute__((packed)) ;
 
-typedef struct {
+struct AuthReport {
     uint8_t type; // 0
     uint8_t seq; // 1
     uint8_t page; // 2
     uint8_t sbz; // 3
     uint8_t data[56]; // 4-59
     uint32_t crc32; // 60-63
-} __attribute__((packed)) ds4_auth_t;
+} __attribute__((packed));
 
-typedef struct {
+struct AuthStatusReport {
     uint8_t type; // 0
     uint8_t seq; // 1
     uint8_t status; // 2  0x10 = not ready, 0x00 = ready
     uint8_t padding[9]; // 3-11
     uint32_t crc32; // 12-15
-} __attribute__((packed)) ds4_auth_status_t;
+} __attribute__((packed));
 
 class ControllerDS4 : public api::ControllerBase {
 public:
@@ -157,8 +157,8 @@ public:
     uint8_t getLEDDelayOff();
 
 private:
-    ds4_report_t report;
-    ds4_feedback_t feedback;
+    InputReport report;
+    FeedbackReport feedback;
     uint8_t currentTouchSeq;
     void incReportCtr();
     static const uint8_t keyLookup[];
