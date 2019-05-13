@@ -1,24 +1,26 @@
 /* SPDX-License-Identifier: Unlicense */
 
-#include <AuthenticatorDS4.hpp>
-#include <ControllerDS4.hpp>
-#include <TransportDS4.hpp>
+#include <RDS4-DS4.hpp>
 #include <PS4USB.h>
 
-using namespace rds4;
+// Namespace aliases
+namespace rds4api = rds4::api;
+namespace ds4 = rds4::ds4;
 
-// Setup USBH, which is required by rds4::AuthenticatorDS4USBH
+// Setup USBH, which is required by rds4::ds4::AuthenticatorUSBH
 USB USBH;
-PS4USB2 RealDS4(&USBH);
+
+// Use patched PS4USB instead of the stock one, note that only patched PS4USB works with rds4::ds4::AuthenticatorUSBH
+ds4::PS4USB2 RealDS4(&USBH);
 
 // Setup the authenticator
-AuthenticatorDS4USBH RealDS4Au(&RealDS4);
+ds4::AuthenticatorUSBH RealDS4Au(&RealDS4);
 
 // Setup the transport backend and register the authenticator to it
-TransportDS4Teensy DS4Tr(&RealDS4Au);
+ds4::TransportTeensy DS4Tr(&RealDS4Au);
 
 // Setup the DS4 object using the transport backend
-ControllerDS4 DS4(&DS4Tr);
+ds4::Controller DS4(&DS4Tr);
 
 void setup() {
     Serial1.begin(115200);
