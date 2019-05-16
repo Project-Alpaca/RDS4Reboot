@@ -13,14 +13,12 @@
 #include <usb_dev.h>
 #include <usb_ds4stub.h>
 
-// TODO find a way to get rid of this or translate to static const
-#define DS4_INTERFACE      0	// DS4
-#define DS4_TX_ENDPOINT    1
-#define DS4_TX_SIZE        64
-#define DS4_RX_ENDPOINT    2
-#define DS4_RX_SIZE        64
+// These should be in sync with the DS4 stub
+static const uint8_t TX_ENDPOINT = 1;
+static const uint8_t TX_SIZE = 64;
+static const uint8_t RX_ENDPOINT = 2;
 
-static const uint8_t MAX_PACKETS = 4;
+static const uint8_t MAX_PACKETS = 2;
 
 namespace rds4 {
 namespace ds4 {
@@ -73,7 +71,7 @@ bool TransportTeensy::available() {
     // make sure the USB is initialized
     if (!usb_configuration) return false;
     // check for queued packets
-    if (usb_rx_byte_count(DS4_RX_ENDPOINT) > 0) {
+    if (usb_rx_byte_count(RX_ENDPOINT) > 0) {
         return true;
     } else {
         return false;
@@ -86,12 +84,12 @@ uint8_t TransportTeensy::send(const void *buf, uint8_t len) {
     // make sure the USB is initialized
     if (!usb_configuration) return 0;
     // check for queued packets
-    if (usb_tx_packet_count(DS4_TX_ENDPOINT) < MAX_PACKETS) {
+    if (usb_tx_packet_count(TX_ENDPOINT) < MAX_PACKETS) {
         pkt = usb_malloc();
         if (pkt) {
             memcpy(pkt->buf, buf, len);
             pkt->len = len;
-            usb_tx(DS4_TX_ENDPOINT, pkt);
+            usb_tx(TX_ENDPOINT, pkt);
             return len;
         } else {
             return 0;
@@ -109,7 +107,7 @@ uint8_t TransportTeensy::sendBlocking(const void *buf, uint8_t len) {
         // make sure the USB is initialized
         if (!usb_configuration) return 0;
         // check for queued packets
-        if (usb_tx_packet_count(DS4_TX_ENDPOINT) < MAX_PACKETS) {
+        if (usb_tx_packet_count(TX_ENDPOINT) < MAX_PACKETS) {
             if ((pkt = usb_malloc())) {
                 break;
             }
@@ -123,14 +121,14 @@ uint8_t TransportTeensy::sendBlocking(const void *buf, uint8_t len) {
     }
     memcpy(pkt->buf, buf, len);
     pkt->len = len;
-    usb_tx(DS4_TX_ENDPOINT, pkt);
+    usb_tx(TX_ENDPOINT, pkt);
     return len;
 }
 
 uint8_t TransportTeensy::recv(void *buf, uint8_t len) {
     usb_packet_t *pkt = NULL;
     uint8_t actualSize;
-    if ((pkt = usb_rx(DS4_RX_ENDPOINT))) {
+    if ((pkt = usb_rx(RX_ENDPOINT))) {
         // Copy at most len bytes of data. Any remaining data will be discarded
         actualSize = (pkt->len > len) ? len : pkt->len;
         memcpy(buf, pkt->buf, actualSize);
@@ -153,7 +151,7 @@ uint8_t TransportTeensy::check(void *buf, uint8_t len) {
     uint8_t actual;
     if (TransportTeensy::frBuffer) {
         actual = len;
-        actual = actual > DS4_TX_SIZE ? DS4_TX_SIZE : actual;
+        actual = actual > TX_SIZE ? TX_SIZE : actual;
         memcpy(buf, TransportTeensy::frBuffer, actual);
         return actual;
     }
