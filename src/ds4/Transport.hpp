@@ -11,7 +11,10 @@
 #include "api/internals.hpp"
 #include "utils/utils.hpp"
 
+#if defined(RDS4_ARDUINO) && defined(RDS4_TEENSY_3)
 #include <usb_ds4stub.h>
+#endif
+
 #include "Controller.hpp"
 
 #ifdef RDS4_LINUX
