@@ -41,12 +41,12 @@ struct InputReport {
     uint16_t sensor_timestamp; // 10-11
     uint8_t battery; // 12
     uint8_t u13; // 13
-    int16_t accel_z; // 14-15
-    int16_t accel_y; // 16-17
-    int16_t accel_x; // 18-19
-    int16_t gyro_x; // 20-21
-    int16_t gyro_y; // 22-23
-    int16_t gyro_z; // 24-25
+    int16_t gyro_x; // 14-15
+    int16_t gyro_y; // 16-17
+    int16_t gyro_z; // 18-19
+    int16_t accel_x; // 20-21
+    int16_t accel_y; // 22-23
+    int16_t accel_z; // 24-25
     uint32_t u26; // 26-29
     uint8_t state_ext; // 30
     uint16_t u31; // 31-32
@@ -143,6 +143,9 @@ public:
     bool setDpadUniversal(api::Dpad value) override;
     bool setStick(api::Stick index, uint8_t x, uint8_t y) override;
     bool setTrigger(api::Key code, uint8_t value) override;
+
+    bool setGyroRaw(int16_t x, int16_t y, int16_t z);
+    bool setAccelRaw(int16_t x, int16_t y, int16_t z);
 
     bool setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y);
     bool setTouchEvent(uint8_t pos, bool pressed, uint16_t x=0, uint16_t y=0);

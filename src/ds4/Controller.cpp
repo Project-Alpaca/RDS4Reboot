@@ -200,6 +200,20 @@ bool Controller::setTrigger(api::Key code, uint8_t value) {
     return true;
 }
 
+bool Controller::setGyroRaw(int16_t x, int16_t y, int16_t z) {
+    this->report.gyro_x = x;
+    this->report.gyro_y = y;
+    this->report.gyro_z = z;
+    return true;
+}
+
+bool Controller::setAccelRaw(int16_t x, int16_t y, int16_t z) {
+    this->report.accel_x = x;
+    this->report.accel_y = y;
+    this->report.accel_z = z;
+    return true;
+}
+
 bool Controller::setTouchpad(uint8_t slot, uint8_t pos, bool pressed, uint8_t seq, uint16_t x, uint16_t y) {
     // TODO Bluetooth has different event buffer size
     if (slot >= (sizeof(this->report.frames) / sizeof(TouchFrame)) || pos > 1) {
