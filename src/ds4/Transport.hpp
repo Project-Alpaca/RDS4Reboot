@@ -15,6 +15,7 @@
 #include <usb_ds4stub.h>
 #endif
 
+#include "Authenticator.hpp"
 #include "Controller.hpp"
 
 #ifdef RDS4_LINUX
@@ -39,31 +40,32 @@ enum class DS4AuthState : uint8_t {
   * authentication requests.
   */
 template <class TR, bool strictCRC=false>
-class AuthenticationHandler : public api::AuthenticationHandler {
+class AuthenticationHandler {
 public:
     typedef void (*StateChangeCallback)(void);
-    AuthenticationHandler(api::Authenticator *auth) : api::AuthenticationHandler(auth),
-                                                      state(DS4AuthState::IDLE),
-                                                      page(-1),
-                                                      seq(0),
-                                                      scratchPad{0},
-                                                      _notifyStateChange(nullptr) {}
-    void begin() override {
+    AuthenticationHandler(AuthenticatorBase *auth) : auth(auth),
+                                                     state(DS4AuthState::IDLE),
+                                                     page(-1),
+                                                     seq(0),
+                                                     scratchPad{0},
+                                                     _notifyStateChange(nullptr) {}
+    void begin() {
         this->auth->begin();
     }
-    void update() override;
+    void update();
     void attachStateChangeCallback(StateChangeCallback callback) {
         _notifyStateChange = callback;
     }
 
 protected:
+    AuthenticatorBase *auth;
     DS4AuthState state;
     int8_t page;
     uint8_t seq;
     // Maximum size for challenge/response
     uint8_t scratchPad[64];
-    bool onGetReport(uint16_t value, uint16_t index, uint16_t length) override;
-    bool onSetReport(uint16_t value, uint16_t index, uint16_t length) override;
+    bool onGetReport(uint16_t value, uint16_t index, uint16_t length);
+    bool onSetReport(uint16_t value, uint16_t index, uint16_t length);
     void notifyStateChange(void) {
         if (this->_notifyStateChange != nullptr) {
             (*this->_notifyStateChange)();
@@ -118,7 +120,7 @@ void AuthenticationHandler<TR, strictCRC>::update() {
                 RDS4_DBG_PRINTLN("AuthenticationHandlerDS4: checking auth status");
                 switch (as) {
                     // Authenticator is ready to answer the challenge.
-                    case api::AuthStatus::OK: {
+                    case BackendAuthState::OK: {
                         // buffer the first response packet
                         auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                         RDS4_DBG_PRINTLN("ok");
@@ -137,7 +139,7 @@ void AuthenticationHandler<TR, strictCRC>::update() {
                         break;
                     }
                     // Authenticator is busy, wait for some more time.
-                    case api::AuthStatus::BUSY:
+                    case BackendAuthState::BUSY:
                         // Wait until host polls again.
                         RDS4_DBG_PRINTLN("busy");
                         this->state = DS4AuthState::WAIT_RESP;
@@ -345,7 +347,7 @@ typedef struct {
 class TransportTeensy;
 class TransportTeensy : public api::Transport, public AuthenticationHandler<TransportTeensy>, public FeatureConfigurator<TransportTeensy> {
 public:
-    TransportTeensy(api::Authenticator *auth) : AuthenticationHandler(auth) {
+    TransportTeensy(AuthenticatorBase *auth) : AuthenticationHandler(auth) {
         TransportTeensy::inst = this;
         usb_ds4stub_on_get_report = &(TransportTeensy::frCallbackGet);
         usb_ds4stub_on_set_report = &(TransportTeensy::frCallbackSet);

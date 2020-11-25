@@ -13,7 +13,7 @@
 namespace rds4 {
 namespace api {
 
-typedef struct {
+struct dataForController_t {
     // keys byte 0
     uint8_t triangleOn : 1;
     uint8_t circleOn : 1;
@@ -43,7 +43,7 @@ typedef struct {
     uint8_t leftStickY : 8;
     uint8_t rightStickX : 8;
     uint8_t rightStickY : 8;
-} dataForController_t;
+};
 
 template <class T>
 class UnoJoyAPI {

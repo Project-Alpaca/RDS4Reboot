@@ -146,44 +146,43 @@ size_t AuthenticatorUSBH::readResponsePage(uint8_t page, void *buf, size_t len) 
     return expected;
 }
 
-api::AuthStatus AuthenticatorUSBH::getStatus() {
+BackendAuthState AuthenticatorUSBH::getStatus() {
     auto rslbuf = (AuthStatusReport *) &(this->scratchPad);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: getting status");
     if (this->statusOverrideEnabled) {
         RDS4_DBG_PRINTLN("gh hack enabled");
         // wait for 2 seconds since the GH dongle takes about 2 seconds to sign the challenge
         if (this->statusOverrideInTransaction and millis() - this->statusOverrideTransactionStartTime > 2000) {
-            return api::AuthStatus::OK;
+            return BackendAuthState::OK;
         } else if (this->statusOverrideInTransaction) {
-            return api::AuthStatus::BUSY;
+            return BackendAuthState::BUSY;
         } else {
-            return api::AuthStatus::NO_TRANSACTION;
+            return BackendAuthState::NO_TRANSACTION;
         }
     }
     memset(rslbuf, 0, sizeof(*rslbuf));
     if (this->donor->GetReport(0, 0, 0x03, Controller::GET_AUTH_STATUS, sizeof(*rslbuf), this->scratchPad) != 0) {
         RDS4_DBG_PRINTLN("comm err");
-        return api::AuthStatus::COMM_ERR;
+        return BackendAuthState::COMM_ERR;
     }
     switch (rslbuf->status) {
         case 0x00:
-            
             RDS4_DBG_PRINTLN("ok");
-            return api::AuthStatus::OK;
+            return BackendAuthState::OK;
             break;
         case 0x01:
             RDS4_DBG_PRINTLN("not in transaction");
-            return api::AuthStatus::NO_TRANSACTION;
+            return BackendAuthState::NO_TRANSACTION;
             break;
         case 0x10:
             RDS4_DBG_PRINTLN("busy");
-            return api::AuthStatus::BUSY;
+            return BackendAuthState::BUSY;
             break;
         default:
             RDS4_DBG_PRINT("unk err ");
             RDS4_DBG_PHEX(rslbuf->status);
             RDS4_DBG_PRINT("\n");
-            return api::AuthStatus::UNKNOWN_ERR;
+            return BackendAuthState::UNKNOWN_ERR;
     }
 }
 
