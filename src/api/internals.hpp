@@ -73,7 +73,7 @@ protected:
      *  @param The length of the supplied buffer.
      *  @return The number of actual bytes sent.
      */
-    virtual uint8_t reply(const void *buf, uint8_t len) = 0;
+    virtual uint8_t setOutgoingFeatureReport(const void *buf, uint8_t len) = 0;
     /** Checkout the supplied data from a feature request. For use within
      *  the implementation classes only.
      *
@@ -81,7 +81,7 @@ protected:
      *  @param The length of the supplied buffer.
      *  @return The number of actual bytes received.
      */
-    virtual uint8_t check(void *buf, uint8_t len) = 0;
+    virtual uint8_t getIncomingFeatureReport(void *buf, uint8_t len) = 0;
     virtual bool onGetReport(uint16_t value, uint16_t index, uint16_t length) = 0;
     virtual bool onSetReport(uint16_t value, uint16_t index, uint16_t length) = 0;
 }; // TransportBase

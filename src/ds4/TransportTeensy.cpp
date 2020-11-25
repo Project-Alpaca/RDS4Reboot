@@ -138,7 +138,7 @@ uint8_t TransportTeensy::recv(void *buf, uint8_t len) {
     return 0;
 }
 
-uint8_t TransportTeensy::reply(const void *buf, uint8_t len) {
+uint8_t TransportTeensy::setOutgoingFeatureReport(const void *buf, uint8_t len) {
     if (TransportTeensy::frBuffer and TransportTeensy::frSize) {
         memcpy(TransportTeensy::frBuffer, buf, len);
         (*TransportTeensy::frSize) = len;
@@ -147,7 +147,7 @@ uint8_t TransportTeensy::reply(const void *buf, uint8_t len) {
     return 0;
 }
 
-uint8_t TransportTeensy::check(void *buf, uint8_t len) {
+uint8_t TransportTeensy::getIncomingFeatureReport(void *buf, uint8_t len) {
     uint8_t actual;
     if (TransportTeensy::frBuffer) {
         actual = len;

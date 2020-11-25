@@ -364,9 +364,9 @@ protected:
     friend class AuthenticationHandler<TransportTeensy>;
     friend class FeatureConfigurator<TransportTeensy>;
     // Copy data to DMA buffer
-    uint8_t check(void *buf, uint8_t len) override;
+    uint8_t getIncomingFeatureReport(void *buf, uint8_t len) override;
     // Unload data from DMA buffer
-    uint8_t reply(const void *buf, uint8_t len) override;
+    uint8_t setOutgoingFeatureReport(const void *buf, uint8_t len) override;
     bool onGetReport(uint16_t value, uint16_t index, uint16_t length) override;
     bool onSetReport(uint16_t value, uint16_t index, uint16_t length) override;
     static int frCallbackGet(void *setup_ptr, uint8_t *data, uint32_t *len);
@@ -421,8 +421,8 @@ protected:
     bool setup(USBSetup& setup);
     int getInterface(uint8_t* interfaceCount) override;
     int getDescriptor(USBSetup& setup) override;
-    uint8_t reply(const void *buf, uint8_t len) override;
-    uint8_t check(void *buf, uint8_t len) override;
+    uint8_t setOutgoingFeatureReport(const void *buf, uint8_t len) override;
+    uint8_t getIncomingFeatureReport(void *buf, uint8_t len) override;
 
 private:
     inline uint8_t getOutEP() { return this->pluggedEndpoint; }
