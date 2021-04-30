@@ -192,7 +192,7 @@ bool AuthenticationHandler<TR, strictCRC>::onSetReport(uint16_t value, uint16_t 
             case Controller::SET_CHALLENGE: {
                 auto *pkt = reinterpret_cast<AuthReport *>(&(this->scratchPad));
                 RDS4_DBG_PRINTLN("AuthenticationHandlerDS4: SET_CHALLENGE");
-                if (tr->check(pkt, sizeof(*pkt)) != sizeof(*pkt)) {
+                if (tr->getIncomingFeatureReport(pkt, sizeof(*pkt)) != sizeof(*pkt)) {
                     RDS4_DBG_PRINTLN("wrong size");
                     return false;
                 }
@@ -251,7 +251,7 @@ bool AuthenticationHandler<TR, strictCRC>::onGetReport(uint16_t value, uint16_t 
                     // TODO do we need to clean the buffer?
                     this->state = DS4AuthState::ERROR;
                 }
-                tr->reply(&scratchPad, sizeof(AuthReport));
+                tr->setOutgoingFeatureReport(&scratchPad, sizeof(AuthReport));
                 break;
             case Controller::GET_AUTH_STATUS: {
                 // Use a separate buffer here to make sure we don't overwrite buffered response.
@@ -281,7 +281,7 @@ bool AuthenticationHandler<TR, strictCRC>::onGetReport(uint16_t value, uint16_t 
                         pkt.status = 0x01; // not in a transaction
                         break;
                 }
-                tr->reply(&pkt, sizeof(pkt));
+                tr->setOutgoingFeatureReport(&pkt, sizeof(pkt));
                 break;
             }
             case Controller::GET_AUTH_PAGE_SIZE: {
@@ -290,7 +290,7 @@ bool AuthenticationHandler<TR, strictCRC>::onGetReport(uint16_t value, uint16_t 
                 ps->type = Controller::GET_AUTH_PAGE_SIZE;
                 ps->size_challenge = this->auth->getChallengePageSize();
                 ps->size_response = this->auth->getResponsePageSize();
-                tr->reply(ps, sizeof(*ps));
+                tr->setOutgoingFeatureReport(ps, sizeof(*ps));
                 break;
             }
             default:
@@ -322,7 +322,7 @@ template <class TR>
 bool FeatureConfigurator<TR>::onGetReport(uint16_t value, uint16_t index, uint16_t length) {
     TR *tr = static_cast<TR *>(this);
     if (value == 0x0303) {
-        tr->reply(&FeatureConfigurator::RESPONSE, sizeof(FeatureConfigurator::RESPONSE));
+        tr->setOutgoingFeatureReport(&FeatureConfigurator::RESPONSE, sizeof(FeatureConfigurator::RESPONSE));
         return true;
     } else {
         return false;
