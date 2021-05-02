@@ -129,6 +129,14 @@ public:
         GET_AUTH_STATUS,
         GET_AUTH_PAGE_SIZE,
     };
+    enum : uint8_t {
+        AXIS16_GYRO_X = 0,
+        AXIS16_GYRO_Y,
+        AXIS16_GYRO_Z,
+        AXIS16_ACCEL_X,
+        AXIS16_ACCEL_Y,
+        AXIS16_ACCEL_Z,
+    };
     Controller(api::Transport *backend);
     void begin() override;
     void update();

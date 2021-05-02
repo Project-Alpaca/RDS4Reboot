@@ -144,7 +144,34 @@ bool Controller::setAxis(uint8_t code, uint8_t value) {
 bool Controller::setAxis16(uint8_t code, uint16_t value) {
     // TODO accel and gyro support
     // No 16-bit axes at the moment, stub this
-    return false;
+    switch (code) {
+    case Controller::AXIS16_GYRO_X:
+        this->report.gyro_x = (int16_t) value;
+        return true;
+        break;
+    case Controller::AXIS16_GYRO_Y:
+        this->report.gyro_y = (int16_t) value;
+        return true;
+        break;
+    case Controller::AXIS16_GYRO_Z:
+        this->report.gyro_z = (int16_t) value;
+        return true;
+        break;
+    case Controller::AXIS16_ACCEL_X:
+        this->report.accel_x = (int16_t) value;
+        return true;
+        break;
+    case Controller::AXIS16_ACCEL_Y:
+        this->report.accel_y = (int16_t) value;
+        return true;
+        break;
+    case Controller::AXIS16_ACCEL_Z:
+        this->report.accel_z = (int16_t) value;
+        return true;
+        break;
+    default:
+        return false;
+    }
 }
 
 bool Controller::setKeyUniversal(api::Key code, bool action) {
