@@ -40,14 +40,13 @@ struct InputReport {
     };
     uint16_t sensor_timestamp; // 10-11
     uint8_t battery; // 12
-    uint8_t u13; // 13
-    int16_t gyro_x; // 14-15
-    int16_t gyro_y; // 16-17
-    int16_t gyro_z; // 18-19
-    int16_t accel_x; // 20-21
-    int16_t accel_y; // 22-23
-    int16_t accel_z; // 24-25
-    uint32_t u26; // 26-29
+    int16_t gyro_x; // 13-14
+    int16_t gyro_y; // 15-16
+    int16_t gyro_z; // 17-18
+    int16_t accel_x; // 19-20
+    int16_t accel_y; // 21-22
+    int16_t accel_z; // 23-24
+    uint8_t u25[5]; // 25-29
     uint8_t state_ext; // 30
     uint16_t u31; // 31-32
     uint8_t tp_available_frame; // 33
