@@ -8,11 +8,6 @@
 #include "Authenticator.hpp"
 #include "utils/utils.hpp"
 
-#ifdef RDS4_LINUX
-// for memcpy(), etc.
-#include <cstring>
-#endif
-
 namespace rds4 {
 namespace ds4 {
 

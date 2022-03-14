@@ -22,15 +22,11 @@
 #include "Authenticator.hpp"
 #include "Controller.hpp"
 
-#ifdef RDS4_LINUX
-#include <cstdio>
-#endif
-
 namespace rds4 {
 namespace ds4 {
 
 #ifndef RDS4_TEENSY_3
-const uint8_t _ds4_report_desc[];
+extern const uint8_t _ds4_report_desc[];
 #endif
 
 enum class DS4AuthState : uint8_t {
@@ -386,93 +382,13 @@ protected:
     static TransportTeensy *inst;
 };
 
-#elif defined(RDS4_ARDUINO) && defined(USBCON)
-
-#include "PluggableUSB.h"
-#include "HID.h"
-
-#if !defined(_USING_HID)
-#error "Pluggable HID required"
-#endif
-
-typedef struct {
-    InterfaceDescriptor hid;
-    HIDDescDescriptor desc;
-    EndpointDescriptor in;
-    EndpointDescriptor out;
-} DS4HIDDescriptor;
-
-#if defined(ARDUINO_ARCH_AVR)
-typedef uint8_t usb_eptype_t;
-#elif defined(ARDUINO_ARCH_SAMD)
-typedef uint32_t usb_eptype_t;
-const usb_eptype_t EP_TYPE_INTERRUPT_IN = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_IN(0);
-const usb_eptype_t EP_TYPE_INTERRUPT_OUT = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_OUT(0);
-#endif
-
-/** Tansport backend for Arduino PluggableUSB-compatible boards. */
-class TransportDS4PUSB : public PluggableUSBModule, public Transport, public AuthenticationHandler<TransportDS4PUSB> {
-public:
-    TransportDS4PUSB(Authenticator *auth) : AuthenticationHandler(auth),
-                                                PluggableUSBModule(2, 1, epType) {
-        this->epType = {EP_TYPE_INTERRUPT_IN, EP_TYPE_INTERRUPT_OUT};
-        PluggableUSB().plug(this);
-        
-    }
-    int begin(void) override { return; }
-    uint8_t send(const void *buf, uint8_t len) override;
-    uint8_t recv(void *buf, uint8_t len) override;
-    bool available() override;
-
-protected:
-    // PluggableUSB API
-    bool setup(USBSetup& setup);
-    int getInterface(uint8_t* interfaceCount) override;
-    int getDescriptor(USBSetup& setup) override;
-    uint8_t setOutgoingFeatureReport(const void *buf, uint8_t len) override;
-    uint8_t getIncomingFeatureReport(void *buf, uint8_t len) override;
-
-private:
-    inline uint8_t getOutEP() { return this->pluggedEndpoint; }
-    inline uint8_t getInEP() { return this->pluggedEndpoint - 1; }
-    usb_eptype_t epType[2];
-    // TODO do we need these?
-    uint8_t protocol;
-    uint8_t idle;
-};
-
-#endif
-
-#ifdef RDS4_ARDUINO_MBED
+#elif defined(RDS4_ARDUINO_MBED)
 
 class TransportArduinoMbedUSBHID: public api::Transport, public USBHID {
 public:
     virtual const uint8_t *report_desc();
 };
 
-#endif
-
-#if 0
-// This is outdated, update soon
-#ifdef RDS4_LINUX
-
-class TransportNull : public Transport {
-    bool sendAvailable() { return false; }
-    bool recvAvailable() { return false; }
-    size_t sendReport(const void *buf, size_t len) { return 0; }
-    size_t recvReport(void *buf, size_t len) { return 0; }
-};
-
-class TransportStdio : public Transport {
-    bool sendAvailable() { return true; }
-    bool recvAvailable() { return false; }
-    size_t sendReport(const void *buf, size_t len) {
-        return fwrite(buf, sizeof(uint8_t), len, stdout);
-    }
-    size_t recvReport(void *buf, size_t len) { return 0; }
-};
-
-#endif // RDS4_MOCK
 #endif
 } // namespace ds4
 } // namespace rds4

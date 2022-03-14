@@ -30,14 +30,7 @@
 #elif defined(ARDUINO)
 #error "Legacy Arduino environment is not supported."
 
-// Linux
-#elif defined(RDS4_LINUX)
-// for int*_t
-#include <cstdint>
-// for size_t
-#include <cstddef>
-
 #else
-#error "Unknown/unsupported environment. If you are targeting for Linux system did you forget to set RDS4_LINUX?"
+#error "Unknown/unsupported environment."
 
 #endif

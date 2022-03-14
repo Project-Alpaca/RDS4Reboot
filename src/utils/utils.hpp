@@ -12,14 +12,7 @@
 
 #ifdef RDS4_DEBUG
 
-#if defined(RDS4_LINUX)
-
-#define RDS4_DBG_DEFINED
-#define RDS4_DBG_PHEX(val) printf("%x", val)
-#define RDS4_DBG_PRINT(str) printf("%s", str)
-#define RDS4_DBG_PRINTLN(str) printf("%s\n", str)
-
-#elif defined(RDS4_ARDUINO)
+#if defined(RDS4_ARDUINO)
 
 #ifndef RDS4_ARDUINO_DBG_IO
 #define RDS4_ARDUINO_DBG_IO Serial
