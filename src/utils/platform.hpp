@@ -19,6 +19,11 @@
                              defined(__MK64FX512__) || \
                              defined(__MK66FX1M0__))
 #define RDS4_TEENSY_3
+
+// TODO other arduino-mbed platforms
+#elif defined(ARDUINO_ARCH_RP2040)
+#define RDS4_ARDUINO_MBED
+
 #endif
 
 // Older Arduino environment

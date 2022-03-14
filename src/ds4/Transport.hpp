@@ -15,6 +15,10 @@
 #include <usb_ds4stub.h>
 #endif
 
+#ifdef RDS4_ARDUINO_MBED
+#include <USBHID.h>
+#endif
+
 #include "Authenticator.hpp"
 #include "Controller.hpp"
 
@@ -24,6 +28,10 @@
 
 namespace rds4 {
 namespace ds4 {
+
+#ifndef RDS4_TEENSY_3
+const uint8_t _ds4_report_desc[];
+#endif
 
 enum class DS4AuthState : uint8_t {
     IDLE,
@@ -434,6 +442,16 @@ private:
 };
 
 #endif
+
+#ifdef RDS4_ARDUINO_MBED
+
+class TransportArduinoMbedUSBHID: public api::Transport, public USBHID {
+public:
+    virtual const uint8_t *report_desc();
+};
+
+#endif
+
 #if 0
 // This is outdated, update soon
 #ifdef RDS4_LINUX
