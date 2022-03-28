@@ -8,6 +8,7 @@
 #pragma once
 
 #include "utils/platform.hpp"
+#include "utils/threading.hpp"
 #include "api/internals.hpp"
 
 // Sigh... https://github.com/arduino/arduino-builder/issues/15#issuecomment-145558252
@@ -36,7 +37,14 @@ enum class BackendAuthState : uint8_t {
 
 class AuthenticatorBase {
 public:
+    /** Max payload size. */
+    static const uint8_t PAYLOAD_MAX = 0x38;
+    /** Total length of a challenge. This is also the signature size. */
+    static const uint16_t CHALLENGE_SIZE = 0x100;
+    /** Total length of a response. */
+    static const uint16_t RESPONSE_SIZE = 0x410;
     /** Start authenticator. Does nothing by default. */
+
     virtual void begin() { };
     /** Check if the authenticator is connected and ready.
      *
@@ -106,7 +114,9 @@ public:
      *  @param The page to be determined.
      *  @return `true` if the page is the last page.
      */
-    virtual bool endOfChallenge(uint8_t page) = 0;
+    virtual bool endOfChallenge(uint8_t page) {
+        return ((static_cast<uint16_t>(page)+1) * this->getChallengePageSize()) >= AuthenticatorBase::CHALLENGE_SIZE;
+    }
     /** Determine if a page is the last page of response. Can be used as a
      *  cue for state transition of authentication handlers. If not
      *  applicable, always return `false`
@@ -114,7 +124,9 @@ public:
      *  @param The page to be determined.
      *  @return `true` if the page is the last page.
      */
-    virtual bool endOfResponse(uint8_t page) = 0;
+    virtual bool endOfResponse(uint8_t page) {
+        return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) >= AuthenticatorBase::RESPONSE_SIZE;
+    }
     /** Reset the authenticator. If not applicable, always return `true`.
      *
      *  @return `true` if reset is successful.
@@ -127,7 +139,7 @@ public:
      *  @param Length of the source buffer (for sanity checks).
      *  @return Actual number of bytes copied.
      */
-    virtual size_t writeChallengePage(uint8_t page, void *buf, size_t len) = 0;
+    virtual size_t writeChallengePage(uint8_t page, const void *buf, size_t len) = 0;
     /** Read response page from the authenticator to a specified buffer.
      *
      *  @param Page number.
@@ -169,10 +181,11 @@ public:
     bool endOfChallenge(uint8_t page) override { return true; }
     bool endOfResponse(uint8_t page) override { return true; }
     bool reset() override { return true; }
-    size_t writeChallengePage(uint8_t page, void *buf, size_t len) { return len; }
+    size_t writeChallengePage(uint8_t page, const void *buf, size_t len) { return len; }
     size_t readResponsePage(uint8_t page, void *buf, size_t len) { return 0; }
     BackendAuthState getStatus() override { return BackendAuthState::UNKNOWN_ERR; }
 };
+
 
 #ifdef RDS4_AUTH_USBH
 
@@ -230,9 +243,6 @@ private:
 /** DS4 authenticator that uses USB PS4 controllers as the backend via USB Host Shield 2.x library. */
 class AuthenticatorUSBH : public AuthenticatorBase {
 public:
-    static const uint8_t PAYLOAD_MAX = 0x38;
-    static const uint16_t CHALLENGE_SIZE = 0x100;
-    static const uint16_t RESPONSE_SIZE = 0x410;
     AuthenticatorUSBH(PS4USB2 *donor);
     bool available() override;
     bool canFitPageSize() override { return true; }
@@ -248,7 +258,7 @@ public:
         return ((static_cast<uint16_t>(page)+1) * this->getResponsePageSize()) >= AuthenticatorUSBH::RESPONSE_SIZE;
     }
     bool reset() override;
-    size_t writeChallengePage(uint8_t page, void *buf, size_t len) override;
+    size_t writeChallengePage(uint8_t page, const void *buf, size_t len) override;
     size_t readResponsePage(uint8_t page, void *buf, size_t len) override;
     BackendAuthState getStatus() override;
 
@@ -266,5 +276,117 @@ private:
 };
 
 #endif // RDS4_AUTH_USBH
+
+#if defined(RDS4_AUTH_NATIVE)
+#if !defined(RDS4_HAS_THREADING)
+#error "Threading not supported on this platform. Native auth will not be available."
+#else
+#include "mbedtls/rsa.h"
+#include "mbedtls/sha256.h"
+
+struct DS4IdentityBlock {
+    uint8_t serial[0x10];
+    uint8_t modulus[0x100];
+    uint8_t exponent[0x100];
+};
+
+struct DS4PrivateKeyBlock {
+    uint8_t p[0x80];
+    uint8_t q[0x80];
+    uint8_t dp1[0x80];
+    uint8_t dq1[0x80];
+    uint8_t pq[0x80];
+};
+
+struct DS4SignedIdentityBlock {
+    DS4IdentityBlock identity;
+    uint8_t identitySig[0x100];
+};
+
+struct DS4FullKeyBlock {
+    union {
+        struct {
+            DS4IdentityBlock identity;
+            uint8_t identitySig[0x100];
+        };
+        DS4SignedIdentityBlock signedIdentity;
+    };
+    DS4PrivateKeyBlock privateKey;
+};
+
+
+class AuthenticatorNative : AuthenticatorBase {
+public:
+    AuthenticatorNative();
+    ~AuthenticatorNative();
+    bool available() override;
+    bool canFitPageSize() override { return true; }
+    bool canSetPageSize() override { return true; }
+    bool needsReset() override { return true; }
+    bool fitPageSize() override;
+    bool setChallengePageSize(uint8_t size) override;
+    bool setResponsePageSize(uint8_t size) override;
+    bool reset() override;
+    size_t writeChallengePage(uint8_t page, const void *buf, size_t len) override;
+    size_t readResponsePage(uint8_t page, void *buf, size_t len) override;
+    BackendAuthState getStatus() override;
+
+    /**
+     * Import the DS4Key and validate the instance.
+     * This will not validate the signature nor the revocation status of the DS4Key.
+     * @param ds4key DS4Key that needs to be imported.
+     * @return true if the key is loaded and validated, false otherwise.
+     */
+    bool begin(DS4FullKeyBlock &ds4key);
+    /**
+     * The worker thread event loop. Needs to be started outside the class currently.
+     * TODO: Is std::function really heavy enough for us to completely ignore it? Investigate.
+     */
+    void threadLoop();
+protected:
+    enum class ResponseStatus {
+        CLEARED,
+        DONE,
+        ERROR,
+    };
+    enum class ResponseStatus2 {
+        SHA256_BEGIN,
+        SHA256_UPDATE,
+        SHA256_DIGEST,
+        RSA_SIGN,
+        DONE,
+    };
+    volatile bool takingChallenge;
+    volatile ResponseStatus responseStatus;
+    /** Work thread step indicator. Used for debugging. */
+    volatile ResponseStatus2 responseStatus2;
+    rds4::threading::Event performingAuth;
+
+    /* These are managed by the worker thread.
+     * DO NOT write to them on main thread when worker is running without locking!
+     */
+    /** DS4Key is loaded */
+    bool ds4KeyLoaded;
+    /** mbedTLS RSA context used by the worker thread. */
+    mbedtls_rsa_context key;
+    mbedtls_md_context_t sha256;
+
+    union {
+        struct {
+            /** Scratchpad for channenge and signature. */
+            uint8_t scratchPad[AuthenticatorNative::CHALLENGE_SIZE];
+            /** Identity block included in response. */
+            DS4SignedIdentityBlock identity;
+        };
+        /** Joined scratchpad and identity buffer for easy response. */
+        uint8_t responseBuffer[sizeof(scratchPad)+sizeof(identity)];
+    };
+
+    static_assert(sizeof(responseBuffer) == AuthenticatorNative::RESPONSE_SIZE,
+        "RESPONSE_SIZE does not equal to the actual size of the buffer");
+};
+
+#endif // !defined(RDS4_HAS_THREADING)
+#endif // defined(RDS4_AUTH_NATIVE)
 }
 }

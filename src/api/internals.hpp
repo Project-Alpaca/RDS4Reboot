@@ -86,6 +86,14 @@ protected:
     virtual bool onSetReport(uint16_t value, uint16_t index, uint16_t length) = 0;
 }; // TransportBase
 
+
+class EndpointResponder {
+protected:
+    virtual int onGetReport(uint8_t type, uint8_t id) = 0;
+    virtual int onSetReport(uint8_t type, uint8_t id) = 0;
+};
+
+
 enum class Rotary8Pos : uint8_t {
     N = 0,
     NE,

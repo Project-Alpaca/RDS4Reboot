@@ -75,7 +75,7 @@ bool AuthenticatorUSBH::fitPageSize() {
     }
 }
 
-size_t AuthenticatorUSBH::writeChallengePage(uint8_t page, void *buf, size_t len) {
+size_t AuthenticatorUSBH::writeChallengePage(uint8_t page, const void *buf, size_t len) {
     auto authbuf = reinterpret_cast<AuthReport *>(&(this->scratchPad));
     auto expected = this->getActualChallengePageSize(page);
     RDS4_DBG_PRINTLN("AuthenticatorDS4USBH: writing page");
@@ -199,5 +199,194 @@ void AuthenticatorUSBH::onStateChange() {
 
 #endif // RDS4_AUTH_USBH
 
+
+#if defined(RDS4_AUTH_NATIVE)
+
+AuthenticatorNative::AuthenticatorNative():
+        takingChallenge(false), responseStatus(ResponseStatus::CLEARED),
+        ds4KeyLoaded(false), scratchPad{0}, identity{0} {
+    mbedtls_rsa_init(&(this->key), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+}
+
+AuthenticatorNative::~AuthenticatorNative() {
+    mbedtls_rsa_free(&(this->key));
+}
+
+bool AuthenticatorNative::available() {
+    return this->ds4KeyLoaded;
+}
+
+bool AuthenticatorNative::fitPageSize() {
+    if (!this->takingChallenge) {
+        this->challengePageSize = 0x38;
+        this->responsePageSize = 0x38;
+        return true;
+    }
+    return false;
+}
+
+bool AuthenticatorNative::setChallengePageSize(uint8_t size) {
+    if (!this->takingChallenge) {
+        this->challengePageSize = size;
+        return true;
+    }
+    return false;
+}
+
+bool AuthenticatorNative::setResponsePageSize(uint8_t size) {
+    if (!this->takingChallenge) {
+        this->responsePageSize = size;
+        return true;
+    }
+    return false;
+}
+
+bool AuthenticatorNative::reset() {
+    this->takingChallenge = false;
+    this->responseStatus = ResponseStatus::CLEARED;
+    this->performingAuth.clear();
+    memset(&(this->scratchPad), 0, sizeof(this->scratchPad));
+    return true;
+}
+
+size_t AuthenticatorNative::writeChallengePage(uint8_t page, const void *buf, size_t len) {
+    // Immediately abort if DS4Key is not loaded or worker thread is running.
+    if (!this->ds4KeyLoaded || this->performingAuth.get()) {
+        return 0;
+    }
+
+    size_t start = this->responsePageSize * page;
+    if (start >= AuthenticatorNative::CHALLENGE_SIZE) {
+        return 0;
+    }
+    size_t remaining = (size_t) (AuthenticatorNative::CHALLENGE_SIZE - start);
+    size_t length = (len < remaining) ? len : remaining;
+
+    memcpy(&(this->scratchPad[start]), buf, length);
+
+    if (this->endOfChallenge(page)) {
+        // Signal the worker thread to start the auth process after last page write.
+        this->performingAuth.set();
+    }
+
+    return length;
+}
+
+size_t AuthenticatorNative::readResponsePage(uint8_t page, void *buf, size_t len) {
+    // Immediately abort if DS4Key is not loaded or worker thread is running.
+    if (!this->ds4KeyLoaded || this->performingAuth.get() ||
+            this->responseStatus != ResponseStatus::DONE) {
+        return 0;
+    }
+
+    size_t start = this->responsePageSize * page;
+    if (start >= AuthenticatorNative::RESPONSE_SIZE) {
+        return 0;
+    }
+    size_t remaining = (size_t) (AuthenticatorNative::RESPONSE_SIZE - start);
+    size_t length = (len < remaining) ? len : remaining;
+
+    memcpy(buf, &(this->responseBuffer[start]), length);
+    return 0;
+}
+
+BackendAuthState AuthenticatorNative::getStatus() {
+    // taking challenge -> no transaction
+    if (this->takingChallenge) {
+        return BackendAuthState::NO_TRANSACTION;
+    // not taking challenge but performing auth -> busy
+    } else if (this->performingAuth.get()) {
+        return BackendAuthState::BUSY;
+    // not taking challenge, not performing auth
+    } else if (this->responseStatus == ResponseStatus::DONE) {
+        return BackendAuthState::OK;
+    // not taking challenge, not performing auth, error when preparing response -> error
+    } else if (this->responseStatus == ResponseStatus::ERROR) {
+        return BackendAuthState::UNKNOWN_ERR;
+    // not taking challenge, not performing auth, response is cleared -> no transaction
+    } else if (this->responseStatus == ResponseStatus::CLEARED) {
+        return BackendAuthState::NO_TRANSACTION;
+    // unknown state -> error
+    } else {
+        return BackendAuthState::UNKNOWN_ERR;
+    }
+}
+
+bool AuthenticatorNative::begin(DS4FullKeyBlock &ds4key) {
+    mbedtls_md_init(&(this->sha256));
+    if (mbedtls_md_setup(&(this->sha256),mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0) != 0) {
+        return false;
+    }
+
+    int importResult = mbedtls_rsa_import_raw(
+        &(this->key),
+        ds4key.identity.modulus, sizeof(ds4key.identity.modulus),
+        ds4key.privateKey.p, sizeof(ds4key.privateKey.p),
+        ds4key.privateKey.q, sizeof(ds4key.privateKey.q),
+        nullptr, 0, // let mbedTLS generate d from p, q and e.
+        ds4key.identity.exponent, sizeof(ds4key.identity.exponent)
+    );
+    // Do self test before deciding on whether the import was successful
+    if (importResult == 0 && mbedtls_rsa_check_privkey(&(this->key)) == 0) {
+        this->ds4KeyLoaded = true;
+        return true;
+    }
+    return false;
+}
+
+void AuthenticatorNative::threadLoop() {
+    uint8_t challengeSHA[32];
+
+    while (1) {
+        if (this->performingAuth.wait()) {
+            // TODO
+            this->responseStatus2 = ResponseStatus2::SHA256_BEGIN;
+            if (mbedtls_md_starts(&(this->sha256)) != 0) {
+                this->responseStatus = ResponseStatus::ERROR;
+                this->performingAuth.clear();
+                continue;
+            };
+
+            this->responseStatus2 = ResponseStatus2::SHA256_UPDATE;
+            if (mbedtls_md_update(&(this->sha256), this->scratchPad, sizeof(this->scratchPad)) != 0) {
+                this->responseStatus = ResponseStatus::ERROR;
+                this->performingAuth.clear();
+                continue;
+            }
+
+            this->responseStatus2 = ResponseStatus2::SHA256_DIGEST;
+            if (mbedtls_md_finish(&(this->sha256), challengeSHA) != 0) {
+                this->responseStatus = ResponseStatus::ERROR;
+                this->performingAuth.clear();
+                continue;
+            }
+
+            this->responseStatus2 = ResponseStatus2::RSA_SIGN;
+            auto signResult = mbedtls_rsa_rsassa_pss_sign(
+                &(this->key),
+                // Stub RNG. Should be enough to let the function do signing but having
+                // platform-specific RNG in rds4::utils and use it here would be nice.
+                [](void *ctx_, unsigned char *buf, size_t len) {
+                    memset(buf, 0, len);
+                    return 0;
+                },
+                nullptr,
+                MBEDTLS_RSA_PRIVATE,
+                MBEDTLS_MD_SHA256,
+                sizeof(challengeSHA),
+                challengeSHA,
+                this->scratchPad
+            );
+            if (signResult != 0) {
+                this->responseStatus = ResponseStatus::ERROR;
+                this->performingAuth.clear();
+            } else {
+                this->responseStatus = ResponseStatus::DONE;
+                this->performingAuth.clear();
+            }
+        }
+    }
+}
+#endif // RDS4_AUTH_NATIVE
 } // namespace ds4
 } // namespace rds4
