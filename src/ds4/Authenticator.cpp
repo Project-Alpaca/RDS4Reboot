@@ -312,7 +312,7 @@ BackendAuthState AuthenticatorNative::getStatus() {
     }
 }
 
-bool AuthenticatorNative::begin(DS4FullKeyBlock &ds4key) {
+bool AuthenticatorNative::begin(const DS4FullKeyBlock &ds4key) {
     mbedtls_md_init(&(this->sha256));
     if (mbedtls_md_setup(&(this->sha256),mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0) != 0) {
         return false;
@@ -339,7 +339,6 @@ void AuthenticatorNative::threadLoop() {
 
     while (1) {
         if (this->performingAuth.wait()) {
-            // TODO
             this->responseStatus2 = ResponseStatus2::SHA256_BEGIN;
             if (mbedtls_md_starts(&(this->sha256)) != 0) {
                 this->responseStatus = ResponseStatus::ERROR;

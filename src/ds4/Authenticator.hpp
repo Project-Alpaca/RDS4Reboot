@@ -337,7 +337,7 @@ public:
      * @param ds4key DS4Key that needs to be imported.
      * @return true if the key is loaded and validated, false otherwise.
      */
-    bool begin(DS4FullKeyBlock &ds4key);
+    bool begin(const DS4FullKeyBlock &ds4key);
     /**
      * The worker thread event loop. Needs to be started outside the class currently.
      * TODO: Is std::function really heavy enough for us to completely ignore it? Investigate.
