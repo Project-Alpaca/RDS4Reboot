@@ -204,8 +204,13 @@ void AuthenticatorUSBH::onStateChange() {
 
 AuthenticatorNative::AuthenticatorNative():
         takingChallenge(false), responseStatus(ResponseStatus::CLEARED),
-        ds4KeyLoaded(false), scratchPad{0}, identity{0} {
+        mbedTLSErrorCode(0), ds4KeyLoaded(false), responseBuffer{0} {
     mbedtls_rsa_init(&(this->key), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+    mbedtls_md_init(&(this->sha256));
+    mbedtls_entropy_init(&(this->entropy));
+    mbedtls_ctr_drbg_init(&(this->drbg));
+
+    this->fitPageSize();
 }
 
 AuthenticatorNative::~AuthenticatorNative() {
@@ -265,8 +270,12 @@ size_t AuthenticatorNative::writeChallengePage(uint8_t page, const void *buf, si
     memcpy(&(this->scratchPad[start]), buf, length);
 
     if (this->endOfChallenge(page)) {
+        RDS4_DBG_PRINTLN("Signaling worker thread...");
         // Signal the worker thread to start the auth process after last page write.
+        this->takingChallenge = false;
         this->performingAuth.set();
+    } else {
+        this->takingChallenge = true;
     }
 
     return length;
@@ -283,11 +292,17 @@ size_t AuthenticatorNative::readResponsePage(uint8_t page, void *buf, size_t len
     if (start >= AuthenticatorNative::RESPONSE_SIZE) {
         return 0;
     }
-    size_t remaining = (size_t) (AuthenticatorNative::RESPONSE_SIZE - start);
-    size_t length = (len < remaining) ? len : remaining;
+    auto remaining = (size_t) (AuthenticatorNative::RESPONSE_SIZE - start);
+    auto length = (len < remaining) ? len : remaining;
 
     memcpy(buf, &(this->responseBuffer[start]), length);
-    return 0;
+
+    // Zero-out the unfilled part
+    if (length < this->responsePageSize) {
+        auto zeroout = this->responsePageSize - length;
+        memset(((uint8_t *) buf) + length, 0, zeroout);
+    }
+    return length;
 }
 
 BackendAuthState AuthenticatorNative::getStatus() {
@@ -302,6 +317,31 @@ BackendAuthState AuthenticatorNative::getStatus() {
         return BackendAuthState::OK;
     // not taking challenge, not performing auth, error when preparing response -> error
     } else if (this->responseStatus == ResponseStatus::ERROR) {
+        RDS4_DBG_PRINT("Worker thread error on ");
+#ifdef RDS4_DEBUG
+        switch (this->responseStatus2) {
+            case ResponseStatus2::EARLY_FAIL:
+                RDS4_DBG_PRINTLN("EARLY_FAIL");
+                break;
+            case ResponseStatus2::SHA256_BEGIN:
+                RDS4_DBG_PRINTLN("SHA256_BEGIN");
+                break;
+            case ResponseStatus2::SHA256_UPDATE:
+                RDS4_DBG_PRINTLN("SHA256_UPDATE");
+                break;
+            case ResponseStatus2::SHA256_DIGEST:
+                RDS4_DBG_PRINTLN("SHA256_DIGEST");
+                break;
+            case ResponseStatus2::RSA_SIGN:
+                RDS4_DBG_PRINTLN("RSA_SIGN");
+                break;
+            default:
+                RDS4_DBG_PRINTLN("?");
+                break;
+        }
+        RDS4_DBG_PRINT("mbedTLS err ");
+        RDS4_DBG_PRINTLN(this->mbedTLSErrorCode);
+#endif
         return BackendAuthState::UNKNOWN_ERR;
     // not taking challenge, not performing auth, response is cleared -> no transaction
     } else if (this->responseStatus == ResponseStatus::CLEARED) {
@@ -313,12 +353,28 @@ BackendAuthState AuthenticatorNative::getStatus() {
 }
 
 bool AuthenticatorNative::begin(const DS4FullKeyBlock &ds4key) {
-    mbedtls_md_init(&(this->sha256));
-    if (mbedtls_md_setup(&(this->sha256),mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0) != 0) {
+    int mbedtlsError;
+
+    // Setup SHA256 context
+    mbedtlsError = mbedtls_md_setup(&(this->sha256), mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0);
+    if (mbedtlsError != 0) {
+        RDS4_DBG_PRINTLN("mbedtls_md_setup() -> ");
+        RDS4_DBG_PHEX(mbedtlsError);
+        RDS4_DBG_PRINTLN();
         return false;
     }
 
-    int importResult = mbedtls_rsa_import_raw(
+    // Setup RNG
+    mbedtlsError = mbedtls_ctr_drbg_seed(&(this->drbg), mbedtls_entropy_func, &(this->entropy), this->DRBG_CUSTOM, sizeof(DRBG_CUSTOM));
+    if (mbedtlsError != 0) {
+        RDS4_DBG_PRINT("mbedtls_ctr_drbg_seed() -> ");
+        RDS4_DBG_PHEX(mbedtlsError);
+        RDS4_DBG_PRINTLN();
+        return false;
+    }
+
+    // Import RSA key from DS4Key blob
+    mbedtlsError = mbedtls_rsa_import_raw(
         &(this->key),
         ds4key.identity.modulus, sizeof(ds4key.identity.modulus),
         ds4key.privateKey.p, sizeof(ds4key.privateKey.p),
@@ -326,16 +382,39 @@ bool AuthenticatorNative::begin(const DS4FullKeyBlock &ds4key) {
         nullptr, 0, // let mbedTLS generate d from p, q and e.
         ds4key.identity.exponent, sizeof(ds4key.identity.exponent)
     );
+    if (mbedtlsError != 0) {
+        RDS4_DBG_PRINT("mbedtls_rsa_import_raw() -> ");
+        RDS4_DBG_PHEX(mbedtlsError);
+        RDS4_DBG_PRINTLN();
+        return false;
+    }
+
+    // Generate d
+    mbedtlsError = mbedtls_rsa_complete(&(this->key));
+    if (mbedtlsError != 0) {
+        RDS4_DBG_PRINT("mbedtls_rsa_complete() -> ");
+        RDS4_DBG_PHEX(mbedtlsError);
+        RDS4_DBG_PRINTLN();
+        return false;
+    }
+
     // Do self test before deciding on whether the import was successful
-    if (importResult == 0 && mbedtls_rsa_check_privkey(&(this->key)) == 0) {
+    mbedtlsError = mbedtls_rsa_check_privkey(&(this->key));
+    if (mbedtlsError == 0) {
+        memcpy(&(this->identity), &(ds4key.signedIdentity), sizeof(this->identity));
         this->ds4KeyLoaded = true;
         return true;
+    } else {
+        RDS4_DBG_PRINT("mbedtls_rsa_check_privkey() -> ");
+        RDS4_DBG_PHEX(mbedtlsError);
+        RDS4_DBG_PRINTLN();
+        return false;
     }
-    return false;
 }
 
 void AuthenticatorNative::threadLoop() {
     uint8_t challengeSHA[32];
+    this->responseStatus2 = ResponseStatus2::EARLY_FAIL;
 
     while (1) {
         if (this->performingAuth.wait()) {
@@ -363,13 +442,8 @@ void AuthenticatorNative::threadLoop() {
             this->responseStatus2 = ResponseStatus2::RSA_SIGN;
             auto signResult = mbedtls_rsa_rsassa_pss_sign(
                 &(this->key),
-                // Stub RNG. Should be enough to let the function do signing but having
-                // platform-specific RNG in rds4::utils and use it here would be nice.
-                [](void *ctx_, unsigned char *buf, size_t len) {
-                    memset(buf, 0, len);
-                    return 0;
-                },
-                nullptr,
+                mbedtls_ctr_drbg_random,
+                &(this->drbg),
                 MBEDTLS_RSA_PRIVATE,
                 MBEDTLS_MD_SHA256,
                 sizeof(challengeSHA),
@@ -377,6 +451,7 @@ void AuthenticatorNative::threadLoop() {
                 this->scratchPad
             );
             if (signResult != 0) {
+                this->mbedTLSErrorCode = signResult;
                 this->responseStatus = ResponseStatus::ERROR;
                 this->performingAuth.clear();
             } else {

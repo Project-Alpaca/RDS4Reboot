@@ -281,8 +281,10 @@ private:
 #if !defined(RDS4_HAS_THREADING)
 #error "Threading not supported on this platform. Native auth will not be available."
 #else
-#include "mbedtls/rsa.h"
-#include "mbedtls/sha256.h"
+#include <mbedtls/rsa.h>
+#include <mbedtls/md.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/entropy.h>
 
 struct DS4IdentityBlock {
     uint8_t serial[0x10];
@@ -349,17 +351,23 @@ protected:
         DONE,
         ERROR,
     };
+
     enum class ResponseStatus2 {
+        EARLY_FAIL,
         SHA256_BEGIN,
         SHA256_UPDATE,
         SHA256_DIGEST,
         RSA_SIGN,
         DONE,
     };
+
+    const uint8_t DRBG_CUSTOM[9] = "PS4 Auth";
+
     volatile bool takingChallenge;
     volatile ResponseStatus responseStatus;
     /** Work thread step indicator. Used for debugging. */
     volatile ResponseStatus2 responseStatus2;
+    volatile int mbedTLSErrorCode;
     rds4::threading::Event performingAuth;
 
     /* These are managed by the worker thread.
@@ -370,6 +378,8 @@ protected:
     /** mbedTLS RSA context used by the worker thread. */
     mbedtls_rsa_context key;
     mbedtls_md_context_t sha256;
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context drbg;
 
     union {
         struct {
@@ -384,6 +394,8 @@ protected:
 
     static_assert(sizeof(responseBuffer) == AuthenticatorNative::RESPONSE_SIZE,
         "RESPONSE_SIZE does not equal to the actual size of the buffer");
+    static_assert(sizeof(identity) == sizeof(DS4FullKeyBlock::signedIdentity),
+        "Identity block size mismatch.");
 };
 
 #endif // !defined(RDS4_HAS_THREADING)
